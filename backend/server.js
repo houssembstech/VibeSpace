@@ -62,5 +62,15 @@ app.post('/api/spots', upload.array('images', 3), async (req, res) => {
   }
 });
 
+// App-level error handler to catch Multer/Cloudinary errors and output JSON instead of HTML
+app.use((err, req, res, next) => {
+  console.error('Express Global Error:', err);
+  res.status(500).json({ 
+    message: 'Une erreur interne bloquante est survenue',
+    error: err.message,
+    type: err.name
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
