@@ -1,122 +1,172 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+
+const COURSES_CATEGORIES = ['🔥 Tout', '✨ Célébrer', '🌿 Se détendre', '📸 Shooting', '🎬 Regarder', '🎮 Jouer', '⛺ Camping'];
+
+const SPOTS = [
+  {
+    id: 1,
+    title: 'Neon Bunker 90s',
+    category: '🎮 Jouer',
+    img: 'https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=800&q=80',
+    location: 'Tunis, Lac 2',
+    capacity: 8,
+    price: 45,
+    rating: 4.9,
+  },
+  {
+    id: 2,
+    title: 'Villa Sunset Horizon',
+    category: '✨ Célébrer',
+    img: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=800&q=80',
+    location: 'La Marsa',
+    capacity: 20,
+    price: 120,
+    rating: 4.8,
+  },
+  {
+    id: 3,
+    title: 'Secret Forest Camp',
+    category: '⛺ Camping',
+    img: 'https://images.unsplash.com/photo-1504280650220-41315b493774?auto=format&fit=crop&w=800&q=80',
+    location: 'Zaghouan',
+    capacity: 12,
+    price: 25,
+    rating: 5.0,
+  },
+  {
+    id: 4,
+    title: 'Chill Room 4K🍿',
+    category: '🎬 Regarder',
+    img: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?auto=format&fit=crop&w=800&q=80',
+    location: "L'Aouina",
+    capacity: 6,
+    price: 30,
+    rating: 4.7,
+  }
+];
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeCategory, setActiveCategory] = useState('🔥 Tout');
+  const [likedSpots, setLikedSpots] = useState({});
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePos({
+        x: e.clientX / window.innerWidth,
+        y: e.clientY / window.innerHeight
+      });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const toggleLike = (id) => {
+    setLikedSpots(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const filteredSpots = activeCategory === '🔥 Tout' 
+    ? SPOTS 
+    : SPOTS.filter(s => s.category === activeCategory);
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      {/* Background Elements */}
+      <div 
+        className="bg-glow top-glow"
+        style={{ transform: `translate(${mousePos.x * 30}px, ${mousePos.y * 30}px)` }}
+      ></div>
+      <div 
+        className="bg-glow bottom-glow"
+        style={{ transform: `translate(-${mousePos.x * 30}px, -${mousePos.y * 30}px)` }}
+      ></div>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {/* Navigation */}
+      <nav className="navbar">
+        <div className="logo">VibeSpace.</div>
+        <div className="nav-right">
+          <button className="btn-host">Ajouter ton spot ⚡</button>
+          <div className="profile-pic">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Profile" />
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+      </nav>
+
+      {/* Hero / Search */}
+      <header className="hero">
+        <h1 className="glitch-text">Quel est le <span className="text-gradient">vibe</span> d'aujourd'hui ?</h1>
+        <p>Réserve des espaces privés pour quelques heures. Zéro prise de tête.</p>
+        
+        <div className="search-bar">
+          <input type="text" placeholder="Où veux-tu te poser ?" />
+          <button className="btn-search">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Categories */}
+      <section className="categories-section">
+        <div className="categories-scroll">
+          {COURSES_CATEGORIES.map(cat => (
+            <button 
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`category-pill ${activeCategory === cat ? 'active' : ''}`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
       </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      {/* Main Content: Spots */}
+      <main className="spots-container">
+        {filteredSpots.map(spot => (
+          <article className="spot-card" key={spot.id}>
+            <div className="spot-image">
+              <img src={spot.img} alt={spot.title} />
+              <div className="spot-badge">{spot.category}</div>
+              <button 
+                className={`btn-like ${likedSpots[spot.id] ? 'liked' : ''}`}
+                onClick={() => toggleLike(spot.id)}
+              >
+                <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              </button>
+            </div>
+            <div className="spot-info">
+              <div className="spot-header">
+                <h2>{spot.title}</h2>
+                <div className="spot-rating">★ {spot.rating}</div>
+              </div>
+              <p className="spot-location">📍 {spot.location}</p>
+              <div className="spot-details">
+                <span className="spot-capacity">👥 Jusqu'à {spot.capacity} pers.</span>
+                <span className="spot-price"><strong className="price-gradient">{spot.price} DT</strong> / h</span>
+              </div>
+              <button className="btn-book">Réserver</button>
+            </div>
+          </article>
+        ))}
+      </main>
+
+      {/* Bottom Mobile Nav */}
+      <div className="bottom-nav">
+        <a href="#explore" className="nav-item active">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>Explorer</span>
+        </a>
+        <a href="#wishlist" className="nav-item">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          <span>Wishlist</span>
+        </a>
+        <a href="#messages" className="nav-item">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Messages</span>
+        </a>
+      </div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
