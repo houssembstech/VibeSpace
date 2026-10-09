@@ -12,6 +12,7 @@ const SPOTS = [
     capacity: 8,
     price: 45,
     rating: 4.9,
+    description: "Une salle de gaming 100% rétro avec bornes d'arcade, PS5, et jeux de société. L'endroit parfait pour t'isoler de la réalité avec tes potes, sous les néons synthwave."
   },
   {
     id: 2,
@@ -22,6 +23,7 @@ const SPOTS = [
     capacity: 20,
     price: 120,
     rating: 4.8,
+    description: "Maison d'architecte luxueuse avec piscine à débordement donnant sur la Méditerranée. Idéale pour les fêtes privées, anniversaires, ou après-midi entre amis."
   },
   {
     id: 3,
@@ -32,6 +34,7 @@ const SPOTS = [
     capacity: 12,
     price: 25,
     rating: 5.0,
+    description: "Un spot secret privatisé en plein cœur de la forêt de Zaghouan avec feu de camp préparé et tentes suspendues. Idéal pour être coupé du monde."
   },
   {
     id: 4,
@@ -42,6 +45,7 @@ const SPOTS = [
     capacity: 6,
     price: 30,
     rating: 4.7,
+    description: "Salle insonorisée avec un projecteur 4K géant, son Dolby Atmos, fauteuils relaxants et une machine à pop-corn incluse. La soirée Netflix ultime."
   }
 ];
 
@@ -50,6 +54,7 @@ function App() {
   const [likedSpots, setLikedSpots] = useState({});
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSpot, setSelectedSpot] = useState(null);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -62,7 +67,8 @@ function App() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const toggleLike = (id) => {
+  const toggleLike = (e, id) => {
+    e.stopPropagation();
     setLikedSpots(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -75,7 +81,6 @@ function App() {
 
   return (
     <>
-      {/* Background Elements */}
       <div 
         className="bg-glow top-glow"
         style={{ transform: `translate(${mousePos.x * 30}px, ${mousePos.y * 30}px)` }}
@@ -85,7 +90,6 @@ function App() {
         style={{ transform: `translate(-${mousePos.x * 30}px, -${mousePos.y * 30}px)` }}
       ></div>
 
-      {/* Navigation */}
       <nav className="navbar">
         <div className="logo">VibeSpace.</div>
         <div className="nav-right">
@@ -96,7 +100,6 @@ function App() {
         </div>
       </nav>
 
-      {/* Hero / Search */}
       <header className="hero">
         <h1 className="glitch-text">Quel est le <span className="text-gradient">vibe</span> d'aujourd'hui ?</h1>
         <p>Réserve des espaces privés pour quelques heures. Zéro prise de tête.</p>
@@ -114,7 +117,6 @@ function App() {
         </div>
       </header>
 
-      {/* Categories */}
       <section className="categories-section">
         <div className="categories-scroll">
           {COURSES_CATEGORIES.map(cat => (
@@ -129,16 +131,15 @@ function App() {
         </div>
       </section>
 
-      {/* Main Content: Spots */}
       <main className="spots-container">
         {filteredSpots.map(spot => (
-          <article className="spot-card" key={spot.id}>
+          <article className="spot-card" key={spot.id} onClick={() => setSelectedSpot(spot)} style={{cursor: 'pointer'}}>
             <div className="spot-image">
               <img src={spot.img} alt={spot.title} />
               <div className="spot-badge">{spot.category}</div>
               <button 
                 className={`btn-like ${likedSpots[spot.id] ? 'liked' : ''}`}
-                onClick={() => toggleLike(spot.id)}
+                onClick={(e) => toggleLike(e, spot.id)}
               >
                 <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
               </button>
@@ -153,13 +154,12 @@ function App() {
                 <span className="spot-capacity">👥 Jusqu'à {spot.capacity} pers.</span>
                 <span className="spot-price"><strong className="price-gradient">{spot.price} DT</strong> / h</span>
               </div>
-              <button className="btn-book">Réserver</button>
+              <button className="btn-book">Consulter</button>
             </div>
           </article>
         ))}
       </main>
 
-      {/* Bottom Mobile Nav */}
       <div className="bottom-nav">
         <a href="#explore" className="nav-item active">
           <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -174,6 +174,46 @@ function App() {
           <span>Messages</span>
         </a>
       </div>
+
+      {/* Spot Detail Modal */}
+      {selectedSpot && (
+        <div className="modal-overlay" onClick={() => setSelectedSpot(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedSpot(null)}>✕</button>
+            <div className="modal-image">
+              <img src={selectedSpot.img} alt={selectedSpot.title} />
+              <div className="modal-badge">{selectedSpot.category}</div>
+            </div>
+            
+            <div className="modal-body">
+              <div className="modal-header">
+                <h2>{selectedSpot.title}</h2>
+                <div className="spot-rating">★ {selectedSpot.rating}</div>
+              </div>
+              
+              <p className="modal-location">📍 {selectedSpot.location}</p>
+              
+              <div className="modal-tags">
+                <span className="tag">👥 Jusqu'à {selectedSpot.capacity} pers.</span>
+                <span className="tag">Wi-Fi Haut Débit</span>
+                <span className="tag">Assurance Incluse</span>
+              </div>
+              
+              <div className="modal-description">
+                <h3>À propos du spot</h3>
+                <p>{selectedSpot.description}</p>
+              </div>
+
+              <div className="modal-footer">
+                <div className="modal-price">
+                  <strong className="price-gradient">{selectedSpot.price} DT</strong> / heure
+                </div>
+                <button className="btn-reserve-large">Réserver le Spot</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
