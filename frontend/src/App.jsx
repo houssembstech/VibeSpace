@@ -136,14 +136,17 @@ function App() {
   }
   
   const spotBaseCost = selectedSpot ? selectedSpot.price * durationHours : 0;
-  const dogsCost = dogs * 13 * durationHours;
+  const animalCostPerHr = selectedSpot?.animalFee !== undefined ? selectedSpot.animalFee : 13;
+  const animalsCostTemp = dogs * animalCostPerHr * durationHours;
   
   const activeSpotAddons = selectedSpot?.addons || ADDONS_LIST;
   const addonsCost = activeSpotAddons.reduce((total, addon) => total + ((addons[addon.id] || 0) * addon.price), 0);
-  const finalTotal = spotBaseCost + extraGuestsCost + dogsCost + addonsCost;
+  const finalTotal = spotBaseCost + extraGuestsCost + animalsCostTemp + addonsCost;
 
   const filteredSpots = spotsList.filter(spot => {
-    const matchCategory = activeCategory === '🔥 Tout' || spot.category === activeCategory;
+    const matchCategory = activeCategory === '🔥 Tout' 
+                          || spot.category === activeCategory 
+                          || (spot.idealFor && spot.idealFor.some(tag => activeCategory.includes(tag)));
     const matchSearch = spot.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         spot.location.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
@@ -243,7 +246,7 @@ function App() {
 
               <div className="booking-price-header">
                 <span className="b-price"><strong className="price-gradient">{selectedSpot.price} DT</strong> /HR</span>
-                <span className="b-spots-remaining">🔔 few spots remaining</span>
+                <span className="b-spots-remaining">Jusqu'à {selectedSpot.capacity} personnes max</span>
               </div>
 
               <div className="booking-box">
@@ -274,36 +277,39 @@ function App() {
 
               <div className="guests-section">
                 <h3>QUI VIENT ?</h3>
-                <div className="counter-row">
-                  <div>Adultes</div>
-                  <div className="counter-controls">
-                    <button onClick={() => setAdults(Math.max(1, adults - 1))}>-</button>
-                    <span>{adults}</span>
-                    <button onClick={() => setAdults(adults + 1)}>+</button>
+                {(!selectedSpot.allowedAudiences || selectedSpot.allowedAudiences.includes('Adultes (+18)') || selectedSpot.allowedAudiences.includes('Famille') || selectedSpot.allowedAudiences.includes('Couple')) && (
+                  <div className="counter-row">
+                    <div>Adultes</div>
+                    <div className="counter-controls">
+                      <button onClick={() => setAdults(Math.max(1, adults - 1))}>-</button>
+                      <span>{adults}</span>
+                      <button onClick={() => setAdults(adults + 1)}>+</button>
+                    </div>
                   </div>
-                </div>
-                <div className="counter-row">
-                  <div>Enfants</div>
-                  <div className="counter-controls">
-                    <button onClick={() => setKids(Math.max(0, kids - 1))}>-</button>
-                    <span>{kids}</span>
-                    <button onClick={() => setKids(kids + 1)}>+</button>
+                )}
+                {(!selectedSpot.allowedAudiences || selectedSpot.allowedAudiences.includes('Enfants') || selectedSpot.allowedAudiences.includes('Famille')) && (
+                  <div className="counter-row">
+                    <div>Enfants</div>
+                    <div className="counter-controls">
+                      <button onClick={() => setKids(Math.max(0, kids - 1))}>-</button>
+                      <span>{kids}</span>
+                      <button onClick={() => setKids(kids + 1)}>+</button>
+                    </div>
                   </div>
-                </div>
-                <div className="counter-row">
-                  <div>
-                    Chiens
-                    <div className="sm-info">13 DT / chien / heure</div>
+                )}
+                {(!selectedSpot.allowedAudiences || selectedSpot.allowedAudiences.includes('Animaux (Chien/Chat)')) && (
+                  <div className="counter-row">
+                    <div>
+                      Animaux
+                      <div className="sm-info">{(selectedSpot.animalFee !== undefined ? selectedSpot.animalFee : 13)} DT / animal / heure</div>
+                    </div>
+                    <div className="counter-controls">
+                      <button onClick={() => setDogs(Math.max(0, dogs - 1))}>-</button>
+                      <span>{dogs}</span>
+                      <button onClick={() => setDogs(dogs + 1)}>+</button>
+                    </div>
                   </div>
-                  <div className="counter-controls">
-                    <button onClick={() => setDogs(Math.max(0, dogs - 1))}>-</button>
-                    <span>{dogs}</span>
-                    <button onClick={() => setDogs(dogs + 1)}>+</button>
-                  </div>
-                </div>
-                <p className="capacity-warning">
-                  Prix pour {selectedSpot.includedGuests} personnes ; au-delà, {selectedSpot.extraGuestPrice} DT / heure / personne, jusqu'à {selectedSpot.capacity} personnes maximum.
-                </p>
+                )}
               </div>
 
               <div className="addons-section">
@@ -421,6 +427,9 @@ function App() {
                   }
                 });
 
+                const audienceNodes = Array.from(form.querySelectorAll('.audience-chip input:checked')).map(cb => cb.value);
+                const animalFee = parseFloat(form.querySelector('#animal-fee-input')?.value);
+
                 const cap = parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10;
                 
                 const newSpot = {
@@ -436,7 +445,9 @@ function App() {
                   rating: 'Nouveau',
                   description: form.querySelector('textarea')?.value || "Un spot exceptionnel fraîchement ajouté.",
                   idealFor: checkedCats.length > 0 ? checkedCats.map(c => c.split(' ')[1] || c) : ['Nouveauté', 'Célébrer'],
-                  addons: configuredAddons
+                  addons: configuredAddons,
+                  allowedAudiences: audienceNodes.length > 0 ? audienceNodes : null,
+                  animalFee: isNaN(animalFee) ? 13 : animalFee
                 };
                 setSpotsList([newSpot, ...spotsList]);
                 setUploadedFiles([]);
@@ -466,6 +477,24 @@ function App() {
                            <span>{cat}</span>
                          </label>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="bb-col mt-input">
+                    <label>QUI VIENT ? (PUBLIC CIBLE)</label>
+                    <div className="host-chip-group">
+                      {['Famille', 'Couple', 'Adultes (+18)', 'Enfants', 'Animaux (Chien/Chat)'].map(aud => (
+                         <label key={aud} className="host-chip audience-chip">
+                           <input type="checkbox" value={aud} onChange={(e) => {
+                              if (aud === 'Animaux (Chien/Chat)') {
+                                const inp = document.getElementById('animal-fee-input');
+                                if (inp) inp.style.display = e.target.checked ? 'inline-block' : 'none';
+                              }
+                           }}/>
+                           <span>{aud}</span>
+                         </label>
+                      ))}
+                      <input id="animal-fee-input" type="number" placeholder="Frais / animal (DT)" style={{display: 'none', width: '160px', padding: '0.4rem 0.8rem', borderRadius: '50px', border: '1px solid var(--accent-1)', background: 'transparent', color: 'white', fontSize: '0.85rem'}} />
                     </div>
                   </div>
 
