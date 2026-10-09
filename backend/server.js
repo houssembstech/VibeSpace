@@ -25,7 +25,7 @@ app.get('/api/spots', async (req, res) => {
     const spots = await Spot.find({});
     res.json(spots);
   } catch (error) {
-    res.status(500).json({ message: 'Erreur serveur.' });
+    res.status(500).json({ message: 'Erreur serveur.', error: error.message, type: error.name });
   }
 });
 
@@ -58,7 +58,7 @@ app.post('/api/spots', upload.array('images', 3), async (req, res) => {
     res.status(201).json(createdSpot);
 
   } catch (error) {
-    res.status(400).json({ message: 'Erreur lors de la création du spot', error: error.message });
+    res.status(500).json({ message: 'Erreur lors de la création du spot', error: error.message, stack: error.stack });
   }
 });
 

@@ -485,9 +485,10 @@ function App() {
                   method: 'POST',
                   body: formData
                 })
-                .then(res => {
-                  if(!res.ok) throw new Error("Erreur Backend");
-                  return res.json();
+                .then(async res => {
+                  const data = await res.json();
+                  if(!res.ok) throw new Error(data.error || data.message || "Erreur Backend inconnue");
+                  return data;
                 })
                 .then(savedSpot => {
                   const finalSpot = {
@@ -504,7 +505,7 @@ function App() {
                 })
                 .catch(err => {
                   console.error(err);
-                  alert('Erreur lors de la sauvegarde du spot... Vérifiez la connexion serveur.');
+                  alert('Échec de la sauvegarde : ' + err.message);
                 })
                 .finally(() => {
                   submitBtn.innerText = origBtnText;
