@@ -30,12 +30,12 @@ app.get('/api/spots', async (req, res) => {
 });
 
 // POST new Spot with Cloudinary Image Upload
-app.post('/api/spots', upload.single('image'), async (req, res) => {
+app.post('/api/spots', upload.array('images', 3), async (req, res) => {
   try {
-    const { title, description, category, location, pricePerHour, maxCapacity } = req.body;
+    const { title, description, category, location, pricePerHour, maxCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee } = req.body;
     
-    // upload.single('image') provides req.file.path which contains the Cloudinary URL
-    const imageUrl = req.file ? req.file.path : 'https://images.unsplash.com/photo-1542751371-adc38448a05e'; // default
+    const images = req.files ? req.files.map(file => file.path) : [];
+    const imageUrl = images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1542751371-adc38448a05e';
 
     const newSpot = new Spot({
       title,
@@ -44,7 +44,14 @@ app.post('/api/spots', upload.single('image'), async (req, res) => {
       location,
       pricePerHour: Number(pricePerHour),
       maxCapacity: Number(maxCapacity),
-      imageUrl
+      includedGuests: Number(includedGuests || 1),
+      extraGuestPrice: Number(extraGuestPrice || 0),
+      animalFee: Number(animalFee || 13),
+      idealFor: idealFor ? JSON.parse(idealFor) : [],
+      addons: addons ? JSON.parse(addons) : [],
+      allowedAudiences: allowedAudiences ? JSON.parse(allowedAudiences) : [],
+      imageUrl,
+      images
     });
 
     const createdSpot = await newSpot.save();

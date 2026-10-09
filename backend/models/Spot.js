@@ -28,8 +28,19 @@ const spotSchema = new mongoose.Schema({
   },
   imageUrl: {
     type: String,
-    required: true
+    required: false
   },
+  images: [{ type: String }],
+  includedGuests: { type: Number, default: 1 },
+  extraGuestPrice: { type: Number, default: 0 },
+  idealFor: [{ type: String }],
+  addons: [{
+    id: String,
+    name: String,
+    price: Number
+  }],
+  allowedAudiences: [{ type: String }],
+  animalFee: { type: Number, default: 13 },
   rating: {
     type: Number,
     default: 5.0

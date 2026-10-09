@@ -82,6 +82,7 @@ const INITIAL_SPOTS = [
 ];
 
 function App() {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const [spotsList, setSpotsList] = useState(INITIAL_SPOTS);
   const [activeCategory, setActiveCategory] = useState('🔥 Tout');
   const [likedSpots, setLikedSpots] = useState({});
@@ -113,6 +114,24 @@ function App() {
       setAddons(activeAddons.reduce((acc, addon) => ({ ...acc, [addon.id]: 0 }), {}));
     }
   }, [selectedSpot]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/spots`)
+      .then(res => res.json())
+      .then(data => {
+        if(data && Array.isArray(data) && data.length > 0) {
+           const dbSpots = data.map(s => ({
+              ...s,
+              id: s._id,
+              price: s.pricePerHour,
+              capacity: s.maxCapacity,
+              img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
+           }));
+           setSpotsList([...dbSpots.reverse(), ...INITIAL_SPOTS]);
+        }
+      })
+      .catch(err => console.error("API Fetch Error:", err));
+  }, [API_URL]);
 
   const toggleLike = (e, id) => {
     e.stopPropagation();
@@ -431,28 +450,66 @@ function App() {
                 const animalFee = parseFloat(form.querySelector('#animal-fee-input')?.value);
 
                 const cap = parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10;
-                
-                const newSpot = {
-                  id: Date.now(),
-                  title: form.querySelector('input[placeholder="Ex: Sunset Rooftop..."]')?.value || 'Nouveau Spot Magique',
-                  location: form.querySelector('input[placeholder="Ex: Sidi Bou Saïd, Rue des Arts"]')?.value || 'Lieu Mystère',
-                  category: checkedCats.length > 0 ? checkedCats[0] : '✨ Nouveauté',
-                  img: imgUrl,
-                  price: parseFloat(form.querySelector('input[placeholder="69"]')?.value) || 50,
-                  capacity: cap,
-                  includedGuests: Math.floor(cap / 2) || 5,
-                  extraGuestPrice: parseFloat(form.querySelector('input[placeholder="7"]')?.value) || 5,
-                  rating: 'Nouveau',
-                  description: form.querySelector('textarea')?.value || "Un spot exceptionnel fraîchement ajouté.",
-                  idealFor: checkedCats.length > 0 ? checkedCats.map(c => c.split(' ')[1] || c) : ['Nouveauté', 'Célébrer'],
-                  addons: configuredAddons,
-                  allowedAudiences: audienceNodes.length > 0 ? audienceNodes : null,
-                  animalFee: isNaN(animalFee) ? 13 : animalFee
-                };
-                setSpotsList([newSpot, ...spotsList]);
-                setUploadedFiles([]);
-                alert('Félicitations ! Ton espace est maintenant en ligne sur VibeSpace 🚀'); 
-                setShowHostModal(false); 
+                const spotTitle = form.querySelector('input[placeholder="Ex: Sunset Rooftop..."]')?.value || 'Nouveau Spot Magique';
+                const spotLocation = form.querySelector('input[placeholder="Ex: Sidi Bou Saïd, Rue des Arts"]')?.value || 'Lieu Mystère';
+                const spotPrice = parseFloat(form.querySelector('input[placeholder="69"]')?.value) || 50;
+                const spotDesc = form.querySelector('textarea')?.value || "Un spot exceptionnel fraîchement ajouté.";
+                const spotCategory = checkedCats.length > 0 ? checkedCats[0] : '✨ Nouveauté';
+                const spotIdealFor = checkedCats.length > 0 ? checkedCats.map(c => c.split(' ')[1] || c) : ['Nouveauté', 'Célébrer'];
+                const extraGuest = parseFloat(form.querySelector('input[placeholder="7"]')?.value) || 5;
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const origBtnText = submitBtn.innerText;
+                submitBtn.innerText = 'Création en cours... ⏳';
+                submitBtn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('title', spotTitle);
+                formData.append('location', spotLocation);
+                formData.append('description', spotDesc);
+                formData.append('category', spotCategory);
+                formData.append('pricePerHour', spotPrice);
+                formData.append('maxCapacity', cap);
+                formData.append('includedGuests', Math.floor(cap / 2) || 5);
+                formData.append('extraGuestPrice', extraGuest);
+                formData.append('idealFor', JSON.stringify(spotIdealFor));
+                formData.append('addons', JSON.stringify(configuredAddons));
+                formData.append('allowedAudiences', JSON.stringify(audienceNodes.length > 0 ? audienceNodes : []));
+                formData.append('animalFee', isNaN(animalFee) ? 13 : animalFee);
+
+                if (uploadedFiles.length > 0) {
+                  uploadedFiles.forEach(f => formData.append('images', f));
+                }
+
+                fetch(`${API_URL}/api/spots`, {
+                  method: 'POST',
+                  body: formData
+                })
+                .then(res => {
+                  if(!res.ok) throw new Error("Erreur Backend");
+                  return res.json();
+                })
+                .then(savedSpot => {
+                  const finalSpot = {
+                    ...savedSpot,
+                    id: savedSpot._id,
+                    price: savedSpot.pricePerHour,
+                    capacity: savedSpot.maxCapacity,
+                    img: savedSpot.images && savedSpot.images.length > 0 ? savedSpot.images[0] : (savedSpot.imageUrl || imgUrl)
+                  };
+                  setSpotsList([finalSpot, ...spotsList]);
+                  setUploadedFiles([]);
+                  alert('Félicitations ! Ton espace a été définitivement sauvegardé sur VibeSpace 🚀'); 
+                  setShowHostModal(false); 
+                })
+                .catch(err => {
+                  console.error(err);
+                  alert('Erreur lors de la sauvegarde du spot... Vérifiez la connexion serveur.');
+                })
+                .finally(() => {
+                  submitBtn.innerText = origBtnText;
+                  submitBtn.disabled = false;
+                });
               }}>
                 
                 <div className="host-section">
