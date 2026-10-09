@@ -19,6 +19,16 @@ app.get('/', (req, res) => {
   res.send('API VibeSpace is running...');
 });
 
+// Diagnostic Route
+app.get('/api/config-check', (req, res) => {
+  res.json({
+    hasMongo: !!process.env.MONGO_URI,
+    hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+    hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+    hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
+  });
+});
+
 // GET all Spots
 app.get('/api/spots', async (req, res) => {
   try {
