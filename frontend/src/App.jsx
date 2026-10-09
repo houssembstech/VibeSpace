@@ -387,12 +387,19 @@ function App() {
               <form className="host-premium-form" onSubmit={(e) => { 
                 e.preventDefault(); 
                 const form = e.target;
+                
+                const fileInput = form.querySelector('input[type="file"]');
+                let imgUrl = 'https://images.unsplash.com/photo-1564013799912-2cae38eb41e6?auto=format&fit=crop&w=800&q=80';
+                if (fileInput && fileInput.files.length > 0) {
+                  imgUrl = URL.createObjectURL(fileInput.files[0]);
+                }
+
                 const newSpot = {
                   id: Date.now(),
                   title: form.querySelector('input[placeholder="Ex: Sunset Rooftop..."]')?.value || 'Nouveau Spot Magique',
                   location: form.querySelector('input[placeholder="Ex: Sidi Bou Saïd, Rue des Arts"]')?.value || 'Lieu Mystère',
                   category: '✨ Nouveauté',
-                  img: 'https://images.unsplash.com/photo-1564013799912-2cae38eb41e6?auto=format&fit=crop&w=800&q=80',
+                  img: imgUrl,
                   price: parseFloat(form.querySelector('input[placeholder="69"]')?.value) || 50,
                   capacity: parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10,
                   includedGuests: Math.floor(parseFloat(form.querySelector('input[placeholder="15"]')?.value) / 2) || 5,
