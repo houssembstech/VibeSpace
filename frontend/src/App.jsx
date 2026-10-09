@@ -86,6 +86,7 @@ function App() {
   const [likedSpots, setLikedSpots] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [showHostModal, setShowHostModal] = useState(false);
 
   // Booking details state
   const [date, setDate] = useState('2026-10-09');
@@ -137,7 +138,7 @@ function App() {
       <nav className="navbar">
         <div className="logo">VibeSpace.</div>
         <div className="nav-right">
-          <button className="btn-host">Ajouter ton spot ⚡</button>
+          <button className="btn-host" onClick={() => setShowHostModal(true)}>Ajouter ton spot ⚡</button>
           <div className="profile-pic">
             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Profile" />
           </div>
@@ -363,6 +364,52 @@ function App() {
                 </ul>
               </div>
 
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Host Modal */}
+      {showHostModal && (
+        <div className="modal-overlay" onClick={() => setShowHostModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowHostModal(false)}>✕</button>
+            <div className="modal-body" style={{paddingTop: '3rem'}}>
+              <h2 className="modal-big-title">Deviens Hôte</h2>
+              <p className="modal-description-sub">Transforme ton espace privé en revenus. Tu gardes 100% le contrôle de tes réservations et de tes règles.</p>
+              
+              <form onSubmit={(e) => { e.preventDefault(); alert('Super ! Ta demande a été envoyée à l\'équipe VibeSpace.'); setShowHostModal(false); }}>
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>NOM DU SPOT</label>
+                    <input type="text" placeholder="Ex: Villa panoramique..." required />
+                  </div>
+                </div>
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>CATÉGORIE</label>
+                    <select required>
+                      {COURSES_CATEGORIES.filter(c => c !== '🔥 Tout').map(cat => <option key={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>PRIX / HEURE (DT)</label>
+                    <input type="number" placeholder="Ex: 50" required />
+                  </div>
+                  <div className="bb-col" style={{marginLeft: '1rem'}}>
+                    <label>CAPACITÉ MAX</label>
+                    <input type="number" placeholder="Ex: 10" required />
+                  </div>
+                </div>
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>DESCRIPTION RAPIDE</label>
+                    <textarea rows="3" placeholder="Ce qui rend ton spot unique..." style={{background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', outline: 'none', resize: 'vertical'}} required></textarea>
+                  </div>
+                </div>
+                <button type="submit" className="btn-reserve-large full-width" style={{marginTop: '2rem'}}>Soumettre à la vérification</button>
+              </form>
             </div>
           </div>
         </div>
