@@ -511,6 +511,181 @@ body {
   transform: scale(1.05);
 }
 
+/* Booking Flow Extracted Detail CSS */
+.modal-category-location {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+.modal-big-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+.modal-description-sub {
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+.ideal-for-section h3, .guests-section h3, .addons-section h3, .recap-section h3, .rules-section h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+.booking-price-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2rem 0 1rem;
+}
+.b-price { font-size: 1.5rem; font-weight: 800; }
+.b-spots-remaining {
+  font-size: 0.85rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 0.3rem 0.6rem;
+  border-radius: 50px;
+}
+.booking-box {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+.bb-row {
+  display: flex;
+  margin-bottom: 1rem;
+}
+.bb-row:last-child { margin-bottom: 0; }
+.bb-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.bb-col label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.bb-col input, .bb-col select {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.time-selects {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.duration-pill {
+  background: var(--accent-gradient);
+  padding: 0.4rem 0.8rem;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+.sm-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  margin-top: 0.2rem;
+}
+.counter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+.counter-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.counter-controls button {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.counter-controls button:hover { background: rgba(255, 255, 255, 0.1); }
+.capacity-warning {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+  line-height: 1.5;
+}
+.addons-section {
+  margin-top: 2rem;
+}
+.addon-row { padding: 0.8rem 0; }
+.recap-section {
+  background: rgba(139, 92, 246, 0.05); /* very light accent */
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-top: 3rem;
+}
+.recap-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+.recap-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--glass-border);
+}
+.recap-summary-tags {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.full-width { width: 100%; margin-top: 1rem;}
+.warning-text {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+}
+.rules-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--glass-border);
+}
+.rules-list {
+  padding-left: 1.2rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.rules-list li { margin-bottom: 0.8rem; }
+.rules-list strong { color: var(--text-main); }
+
 @media (max-width: 768px) {
   .glitch-text { font-size: 2.2rem; }
   .bottom-nav { display: flex; }
