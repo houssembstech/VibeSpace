@@ -67,8 +67,7 @@ app.use((err, req, res, next) => {
   console.error('Express Global Error:', err);
   res.status(500).json({ 
     message: 'Une erreur interne bloquante est survenue',
-    error: err.message,
-    type: err.name
+    error: err && err.message ? err.message : (err ? err.toString() : 'Unknown')
   });
 });
 
