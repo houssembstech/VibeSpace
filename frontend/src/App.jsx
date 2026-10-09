@@ -49,6 +49,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState('🔥 Tout');
   const [likedSpots, setLikedSpots] = useState({});
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -65,9 +66,12 @@ function App() {
     setLikedSpots(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const filteredSpots = activeCategory === '🔥 Tout' 
-    ? SPOTS 
-    : SPOTS.filter(s => s.category === activeCategory);
+  const filteredSpots = SPOTS.filter(spot => {
+    const matchCategory = activeCategory === '🔥 Tout' || spot.category === activeCategory;
+    const matchSearch = spot.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        spot.location.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   return (
     <>
@@ -98,7 +102,12 @@ function App() {
         <p>Réserve des espaces privés pour quelques heures. Zéro prise de tête.</p>
         
         <div className="search-bar">
-          <input type="text" placeholder="Où veux-tu te poser ?" />
+          <input 
+            type="text" 
+            placeholder="Où veux-tu te poser (ex: Tunis, Sunset...) ?" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <button className="btn-search">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </button>
