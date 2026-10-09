@@ -22,7 +22,7 @@ const ADDONS_LIST = [
   { id: 'salon', name: 'Salon privé', price: 195 },
 ];
 
-const SPOTS = [
+const INITIAL_SPOTS = [
   {
     id: 1,
     title: 'Neon Bunker 90s',
@@ -82,6 +82,7 @@ const SPOTS = [
 ];
 
 function App() {
+  const [spotsList, setSpotsList] = useState(INITIAL_SPOTS);
   const [activeCategory, setActiveCategory] = useState('🔥 Tout');
   const [likedSpots, setLikedSpots] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,7 +132,7 @@ function App() {
   const addonsCost = ADDONS_LIST.reduce((total, addon) => total + (addons[addon.id] * addon.price), 0);
   const finalTotal = spotBaseCost + extraGuestsCost + dogsCost + addonsCost;
 
-  const filteredSpots = SPOTS.filter(spot => {
+  const filteredSpots = spotsList.filter(spot => {
     const matchCategory = activeCategory === '🔥 Tout' || spot.category === activeCategory;
     const matchSearch = spot.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         spot.location.toLowerCase().includes(searchQuery.toLowerCase());
@@ -383,7 +384,27 @@ function App() {
               <h2 className="modal-big-title">Deviens Hôte</h2>
               <p className="modal-description-sub">Transforme ton espace privé en revenus. Tu gardes 100% le contrôle de tes réservations et de tes règles.</p>
               
-              <form className="host-premium-form" onSubmit={(e) => { e.preventDefault(); alert('Super ! Ta demande a été envoyée à l\'équipe VibeSpace.'); setShowHostModal(false); }}>
+              <form className="host-premium-form" onSubmit={(e) => { 
+                e.preventDefault(); 
+                const form = e.target;
+                const newSpot = {
+                  id: Date.now(),
+                  title: form.querySelector('input[placeholder="Ex: Sunset Rooftop..."]')?.value || 'Nouveau Spot Magique',
+                  location: form.querySelector('input[placeholder="Ex: Sidi Bou Saïd, Rue des Arts"]')?.value || 'Lieu Mystère',
+                  category: '✨ Nouveauté',
+                  img: 'https://images.unsplash.com/photo-1564013799912-2cae38eb41e6?auto=format&fit=crop&w=800&q=80',
+                  price: parseFloat(form.querySelector('input[placeholder="69"]')?.value) || 50,
+                  capacity: parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10,
+                  includedGuests: Math.floor(parseFloat(form.querySelector('input[placeholder="15"]')?.value) / 2) || 5,
+                  extraGuestPrice: parseFloat(form.querySelector('input[placeholder="7"]')?.value) || 5,
+                  rating: 'Nouveau',
+                  description: form.querySelector('textarea')?.value || "Un spot exceptionnel fraîchement ajouté.",
+                  idealFor: ['Nouveauté', 'Célébrer']
+                };
+                setSpotsList([newSpot, ...spotsList]);
+                alert('Félicitations ! Ton espace est maintenant en ligne sur VibeSpace 🚀'); 
+                setShowHostModal(false); 
+              }}>
                 
                 <div className="host-section">
                   <h3><span className="step-num">1</span> L'Identité du Spot</h3>
@@ -451,11 +472,11 @@ function App() {
                       ))}
                     </div>
                     <div className="time-inputs-row">
-                      <div className="val-input-wrapper" style={{maxWidth: '120px'}}>
+                      <div className="val-input-wrapper" style={{flex: 1, maxWidth: '180px'}}>
                         <span className="val-unit" style={{borderLeft: 'none', borderRight: '1px solid var(--glass-border)'}}>De</span>
                         <input type="time" defaultValue="08:00" />
                       </div>
-                      <div className="val-input-wrapper" style={{maxWidth: '120px'}}>
+                      <div className="val-input-wrapper" style={{flex: 1, maxWidth: '180px'}}>
                         <span className="val-unit" style={{borderLeft: 'none', borderRight: '1px solid var(--glass-border)'}}>À</span>
                         <input type="time" defaultValue="23:00" />
                       </div>
