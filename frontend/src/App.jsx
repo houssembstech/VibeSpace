@@ -87,6 +87,12 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [showHostModal, setShowHostModal] = useState(false);
+  const [selectedDays, setSelectedDays] = useState(['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di']);
+
+  const toggleDay = (d) => {
+    if(selectedDays.includes(d)) setSelectedDays(selectedDays.filter(day => day !== d));
+    else setSelectedDays([...selectedDays, d]);
+  };
 
   // Booking details state
   const [date, setDate] = useState('2026-10-09');
@@ -398,7 +404,7 @@ function App() {
                       {COURSES_CATEGORIES.filter(c => c !== '🔥 Tout').map(cat => (
                          <label key={cat} className="host-chip">
                            <input type="checkbox" value={cat} /> 
-                           <span>{cat.split(' ')[1]}</span>
+                           <span>{cat}</span>
                          </label>
                       ))}
                     </div>
@@ -437,7 +443,23 @@ function App() {
                   </div>
                   <div className="bb-col mt-input">
                     <label>JOURS ET HORAIRES</label>
-                    <input type="text" placeholder="Ex: 7j/7, de 10:00 à 00:00" required />
+                    <div className="days-pills-group">
+                      {['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'].map(d => (
+                        <div key={d} className={`day-pill ${selectedDays.includes(d) ? 'active' : ''}`} onClick={() => toggleDay(d)}>
+                          {d}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="time-inputs-row">
+                      <div className="val-input-wrapper" style={{maxWidth: '120px'}}>
+                        <span className="val-unit" style={{borderLeft: 'none', borderRight: '1px solid var(--glass-border)'}}>De</span>
+                        <input type="time" defaultValue="08:00" />
+                      </div>
+                      <div className="val-input-wrapper" style={{maxWidth: '120px'}}>
+                        <span className="val-unit" style={{borderLeft: 'none', borderRight: '1px solid var(--glass-border)'}}>À</span>
+                        <input type="time" defaultValue="23:00" />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
