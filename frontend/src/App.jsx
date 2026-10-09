@@ -377,88 +377,107 @@ function App() {
               <h2 className="modal-big-title">Deviens Hôte</h2>
               <p className="modal-description-sub">Transforme ton espace privé en revenus. Tu gardes 100% le contrôle de tes réservations et de tes règles.</p>
               
-              <form onSubmit={(e) => { e.preventDefault(); alert('Super ! Ta demande a été envoyée à l\'équipe VibeSpace.'); setShowHostModal(false); }}>
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>NOM DU SPOT</label>
-                    <input type="text" placeholder="Ex: Rooftop & Shooting..." required />
+              <form className="host-premium-form" onSubmit={(e) => { e.preventDefault(); alert('Super ! Ta demande a été envoyée à l\'équipe VibeSpace.'); setShowHostModal(false); }}>
+                
+                <div className="host-section">
+                  <h3><span className="step-num">1</span> L'Identité du Spot</h3>
+                  <div className="host-grid">
+                    <div className="bb-col">
+                      <label>NOM DU SPOT</label>
+                      <input type="text" placeholder="Ex: Sunset Rooftop..." required />
+                    </div>
+                    <div className="bb-col">
+                      <label>ADRESSE COMPLÈTE</label>
+                      <input type="text" placeholder="Ex: Sidi Bou Saïd, Rue des Arts" required />
+                    </div>
                   </div>
-                </div>
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>ADRESSE / LIEU</label>
-                    <input type="text" placeholder="Ex: Sidi Bou Saïd" required />
-                  </div>
-                </div>
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>IDÉAL POUR (Choix multiple)</label>
-                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem'}}>
+
+                  <div className="bb-col mt-input">
+                    <label>IDÉAL POUR</label>
+                    <div className="host-chip-group">
                       {COURSES_CATEGORIES.filter(c => c !== '🔥 Tout').map(cat => (
-                         <label key={cat} style={{display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 0.8rem', borderRadius: '50px'}}>
-                           <input type="checkbox" value={cat} /> {cat.split(' ')[1]}
+                         <label key={cat} className="host-chip">
+                           <input type="checkbox" value={cat} /> 
+                           <span>{cat.split(' ')[1]}</span>
                          </label>
                       ))}
                     </div>
                   </div>
-                </div>
-                <div className="bb-row" style={{marginTop: '1rem'}}>
-                  <div className="bb-col">
-                    <label>JOURS ET HORAIRES D'OUVERTURE</label>
-                    <input type="text" placeholder="Ex: Tous les jours, de 10:00 à 00:00" required />
+
+                  <div className="bb-col mt-input">
+                    <label>DESCRIPTION IMMERSIVE</label>
+                    <textarea rows="3" placeholder="Parlez de l'ambiance, de la vue, du vibe global..." required></textarea>
                   </div>
                 </div>
 
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>PRIX / HEURE (DT)</label>
-                    <input type="number" placeholder="Ex: 69" required />
+                <div className="host-section">
+                  <h3><span className="step-num">2</span> Tarifs & Capacité</h3>
+                  <div className="host-grid-3">
+                    <div className="bb-col">
+                      <label>PRIX / HEURE</label>
+                      <div className="val-input-wrapper">
+                        <input type="number" placeholder="69" required />
+                        <span className="val-unit">DT</span>
+                      </div>
+                    </div>
+                    <div className="bb-col">
+                      <label>CAPACITÉ MAX</label>
+                      <div className="val-input-wrapper">
+                        <input type="number" placeholder="15" required />
+                        <span className="val-unit">Pers</span>
+                      </div>
+                    </div>
+                    <div className="bb-col">
+                      <label>FRAIS SUPPLÉM.</label>
+                      <div className="val-input-wrapper">
+                        <input type="number" placeholder="7" required />
+                        <span className="val-unit">DT/p/h</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bb-col" style={{marginLeft: '1rem'}}>
-                    <label>CAPACITÉ MAXIMALE</label>
-                    <input type="number" placeholder="Ex: 15" required />
-                  </div>
-                </div>
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>FRAIS SUPPLÉMENTAIRES (&gt; Capacité base) (DT / pers / h)</label>
-                    <input type="number" placeholder="Ex: 7" required />
+                  <div className="bb-col mt-input">
+                    <label>JOURS ET HORAIRES</label>
+                    <input type="text" placeholder="Ex: 7j/7, de 10:00 à 00:00" required />
                   </div>
                 </div>
 
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>DESCRIPTION RAPIDE</label>
-                    <textarea rows="3" placeholder="Cet espace est entièrement privé et sans vis-à-vis..." style={{background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', outline: 'none', resize: 'vertical'}} required></textarea>
+                <div className="host-section">
+                  <h3><span className="step-num">3</span> Services Optionnels Extras</h3>
+                  <p className="sm-info mb-info">Active les options et fixe ton tarif pour maximiser tes revenus.</p>
+                  <div className="host-addons-grid">
+                    {ADDONS_LIST.map(addon => (
+                      <div key={addon.id} className="host-addon-card">
+                        <label className="toggle-switch">
+                          <input type="checkbox" onChange={(e) => {
+                            const input = document.getElementById(`price-${addon.id}`);
+                            if(input) input.style.opacity = e.target.checked ? '1' : '0';
+                            if(input) input.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+                          }} />
+                          <span className="toggle-slider"></span>
+                          <span className="toggle-label">{addon.name}</span>
+                        </label>
+                        <div id={`price-${addon.id}`} className="addon-price-hover" style={{opacity: 0, pointerEvents: 'none', transition: '0.3s'}}>
+                          <input type="number" placeholder="0" />
+                          <span>DT</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>PHOTOS (3 max)</label>
+                <div className="host-section">
+                  <h3><span className="step-num">4</span> Médias (3 Photos Max)</h3>
+                  <div className="file-drop-area">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <h4>Glisse tes meilleures photos</h4>
+                    <p>Qualité Premium uniquement (Max 5MB)</p>
                     <input type="file" multiple accept="image/*" />
                   </div>
                 </div>
 
-                <div className="bb-row" style={{marginTop: '1.5rem'}}>
-                  <div className="bb-col">
-                    <label>SERVICES OPTIONNELS & LEUR PRIX</label>
-                    <p className="sm-info" style={{marginBottom: '0.5rem', marginTop: '0'}}>Coche les options que tu proposes et fixe ton prix (DT).</p>
-                    <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: 'var(--radius-sm)'}}>
-                      {ADDONS_LIST.map(addon => (
-                        <div key={addon.id} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
-                          <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer'}}>
-                            <input type="checkbox" />
-                            <span style={{fontSize: '0.9rem', color: 'var(--text-main)'}}>{addon.name}</span>
-                          </label>
-                          <input type="number" placeholder="Prix (DT)" style={{width: '90px', padding: '0.3rem', background: 'transparent', color: 'white', border: '1px solid var(--glass-border)', borderRadius: '4px'}} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <button type="submit" className="btn-reserve-large full-width" style={{marginTop: '2rem'}}>Soumettre mon Espace</button>
+                <button type="submit" className="btn-reserve-large full-width btn-magic">
+                  Lancer mon Espace 🚀
+                </button>
               </form>
             </div>
           </div>
