@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VibeSpace — Trouve ton Spot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Elements -->
+    <div class="bg-glow top-glow"></div>
+    <div class="bg-glow bottom-glow"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="logo">VibeSpace.</div>
+        <div class="nav-right">
+            <button class="btn-host">Ajouter ton spot ⚡</button>
+            <div class="profile-pic">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Profile">
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header / Search -->
+    <header class="hero">
+        <h1 class="glitch-text">Quel est le <span class="text-gradient">vibe</span> d'aujourd'hui ?</h1>
+        <p>Réserve des espaces privés pour quelques heures. Zéro prise de tête.</p>
+        
+        <div class="search-bar">
+            <input type="text" placeholder="Où veux-tu te poser ? (ex: Marsa, Hammamet...)">
+            <button class="btn-search">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Categories -->
+    <section class="categories-section">
+        <div class="categories-scroll" id="categoriesTrack">
+            <button class="category-pill active">🔥 Tout</button>
+            <button class="category-pill">✨ Célébrer</button>
+            <button class="category-pill">🌿 Se détendre</button>
+            <button class="category-pill">📸 Shooting</button>
+            <button class="category-pill">🎬 Regarder</button>
+            <button class="category-pill">🎮 Jouer</button>
+            <button class="category-pill">⛺ Camping</button>
+        </div>
+    </section>
+
+    <!-- Main Content: Spots -->
+    <main class="spots-container">
+        <!-- Spot Card 1 -->
+        <article class="spot-card">
+            <div class="spot-image">
+                <img src="https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=800&q=80" alt="Gaming Room">
+                <div class="spot-badge">🎮 Jouer</div>
+                <button class="btn-like">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+            </div>
+            <div class="spot-info">
+                <div class="spot-header">
+                    <h2>Neon Bunker 90s</h2>
+                    <div class="spot-rating">★ 4.9</div>
+                </div>
+                <p class="spot-location">📍 Tunis, Lac 2</p>
+                <div class="spot-details">
+                    <span class="spot-capacity">👥 Jusqu'à 8 pers.</span>
+                    <span class="spot-price"><strong class="price-gradient">45 DT</strong> / h</span>
+                </div>
+                <button class="btn-book">Réserver</button>
+            </div>
+        </article>
+
+        <!-- Spot Card 2 -->
+        <article class="spot-card">
+            <div class="spot-image">
+                <img src="https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=800&q=80" alt="Pool Party">
+                <div class="spot-badge">✨ Célébrer</div>
+                <button class="btn-like">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+            </div>
+            <div class="spot-info">
+                <div class="spot-header">
+                    <h2>Villa Sunset Horizon</h2>
+                    <div class="spot-rating">★ 4.8</div>
+                </div>
+                <p class="spot-location">📍 La Marsa</p>
+                <div class="spot-details">
+                    <span class="spot-capacity">👥 Jusqu'à 20 pers.</span>
+                    <span class="spot-price"><strong class="price-gradient">120 DT</strong> / h</span>
+                </div>
+                <button class="btn-book">Réserver</button>
+            </div>
+        </article>
+
+        <!-- Spot Card 3 -->
+        <article class="spot-card">
+            <div class="spot-image">
+                <img src="https://images.unsplash.com/photo-1504280650220-41315b493774?auto=format&fit=crop&w=800&q=80" alt="Camping sauvage">
+                <div class="spot-badge">⛺ Camping</div>
+                <button class="btn-like">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+            </div>
+            <div class="spot-info">
+                <div class="spot-header">
+                    <h2>Secret Forest Camp</h2>
+                    <div class="spot-rating">★ 5.0</div>
+                </div>
+                <p class="spot-location">📍 Zaghouan</p>
+                <div class="spot-details">
+                    <span class="spot-capacity">👥 Jusqu'à 12 pers.</span>
+                    <span class="spot-price"><strong class="price-gradient">25 DT</strong> / h</span>
+                </div>
+                <button class="btn-book">Réserver</button>
+            </div>
+        </article>
+
+        <!-- Spot Card 4 -->
+        <article class="spot-card">
+            <div class="spot-image">
+                <img src="https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?auto=format&fit=crop&w=800&q=80" alt="Home Cinema">
+                <div class="spot-badge">🎬 Regarder</div>
+                <button class="btn-like">
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                </button>
+            </div>
+            <div class="spot-info">
+                <div class="spot-header">
+                    <h2>Chill Room 4K🍿</h2>
+                    <div class="spot-rating">★ 4.7</div>
+                </div>
+                <p class="spot-location">📍 L'Aouina</p>
+                <div class="spot-details">
+                    <span class="spot-capacity">👥 Jusqu'à 6 pers.</span>
+                    <span class="spot-price"><strong class="price-gradient">30 DT</strong> / h</span>
+                </div>
+                <button class="btn-book">Réserver</button>
+            </div>
+        </article>
+    </main>
+
+    <!-- Bottom Mobile Nav -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Explorer</span>
+        </a>
+        <a href="#" class="nav-item">
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            <span>Wishlist</span>
+        </a>
+        <a href="#" class="nav-item">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span>Messages</span>
+        </a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
