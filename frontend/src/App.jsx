@@ -381,34 +381,84 @@ function App() {
                 <div className="bb-row">
                   <div className="bb-col">
                     <label>NOM DU SPOT</label>
-                    <input type="text" placeholder="Ex: Villa panoramique..." required />
+                    <input type="text" placeholder="Ex: Rooftop & Shooting..." required />
                   </div>
                 </div>
                 <div className="bb-row">
                   <div className="bb-col">
-                    <label>CATÉGORIE</label>
-                    <select required>
-                      {COURSES_CATEGORIES.filter(c => c !== '🔥 Tout').map(cat => <option key={cat}>{cat}</option>)}
-                    </select>
+                    <label>ADRESSE / LIEU</label>
+                    <input type="text" placeholder="Ex: Sidi Bou Saïd" required />
                   </div>
                 </div>
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>IDÉAL POUR (Choix multiple)</label>
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem'}}>
+                      {COURSES_CATEGORIES.filter(c => c !== '🔥 Tout').map(cat => (
+                         <label key={cat} style={{display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.4rem 0.8rem', borderRadius: '50px'}}>
+                           <input type="checkbox" value={cat} /> {cat.split(' ')[1]}
+                         </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="bb-row" style={{marginTop: '1rem'}}>
+                  <div className="bb-col">
+                    <label>JOURS ET HORAIRES D'OUVERTURE</label>
+                    <input type="text" placeholder="Ex: Tous les jours, de 10:00 à 00:00" required />
+                  </div>
+                </div>
+
                 <div className="bb-row">
                   <div className="bb-col">
                     <label>PRIX / HEURE (DT)</label>
-                    <input type="number" placeholder="Ex: 50" required />
+                    <input type="number" placeholder="Ex: 69" required />
                   </div>
                   <div className="bb-col" style={{marginLeft: '1rem'}}>
-                    <label>CAPACITÉ MAX</label>
-                    <input type="number" placeholder="Ex: 10" required />
+                    <label>CAPACITÉ MAXIMALE</label>
+                    <input type="number" placeholder="Ex: 15" required />
                   </div>
                 </div>
                 <div className="bb-row">
                   <div className="bb-col">
-                    <label>DESCRIPTION RAPIDE</label>
-                    <textarea rows="3" placeholder="Ce qui rend ton spot unique..." style={{background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', outline: 'none', resize: 'vertical'}} required></textarea>
+                    <label>FRAIS SUPPLÉMENTAIRES (&gt; Capacité base) (DT / pers / h)</label>
+                    <input type="number" placeholder="Ex: 7" required />
                   </div>
                 </div>
-                <button type="submit" className="btn-reserve-large full-width" style={{marginTop: '2rem'}}>Soumettre à la vérification</button>
+
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>DESCRIPTION RAPIDE</label>
+                    <textarea rows="3" placeholder="Cet espace est entièrement privé et sans vis-à-vis..." style={{background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '0.75rem', borderRadius: 'var(--radius-sm)', outline: 'none', resize: 'vertical'}} required></textarea>
+                  </div>
+                </div>
+
+                <div className="bb-row">
+                  <div className="bb-col">
+                    <label>PHOTOS (3 max)</label>
+                    <input type="file" multiple accept="image/*" />
+                  </div>
+                </div>
+
+                <div className="bb-row" style={{marginTop: '1.5rem'}}>
+                  <div className="bb-col">
+                    <label>SERVICES OPTIONNELS & LEUR PRIX</label>
+                    <p className="sm-info" style={{marginBottom: '0.5rem', marginTop: '0'}}>Coche les options que tu proposes et fixe ton prix (DT).</p>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--glass-border)', padding: '1rem', borderRadius: 'var(--radius-sm)'}}>
+                      {ADDONS_LIST.map(addon => (
+                        <div key={addon.id} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                          <label style={{display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer'}}>
+                            <input type="checkbox" />
+                            <span style={{fontSize: '0.9rem', color: 'var(--text-main)'}}>{addon.name}</span>
+                          </label>
+                          <input type="number" placeholder="Prix (DT)" style={{width: '90px', padding: '0.3rem', background: 'transparent', color: 'white', border: '1px solid var(--glass-border)', borderRadius: '4px'}} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-reserve-large full-width" style={{marginTop: '2rem'}}>Soumettre mon Espace</button>
               </form>
             </div>
           </div>
