@@ -88,6 +88,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [showHostModal, setShowHostModal] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [selectedDays, setSelectedDays] = useState(['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di']);
 
   const toggleDay = (d) => {
@@ -106,6 +107,13 @@ function App() {
     ADDONS_LIST.reduce((acc, addon) => ({ ...acc, [addon.id]: 0 }), {})
   );
 
+  useEffect(() => {
+    if (selectedSpot) {
+      const activeAddons = selectedSpot.addons || ADDONS_LIST;
+      setAddons(activeAddons.reduce((acc, addon) => ({ ...acc, [addon.id]: 0 }), {}));
+    }
+  }, [selectedSpot]);
+
   const toggleLike = (e, id) => {
     e.stopPropagation();
     setLikedSpots(prev => ({ ...prev, [id]: !prev[id] }));
@@ -114,7 +122,7 @@ function App() {
   const updateAddon = (id, delta) => {
     setAddons(prev => ({
       ...prev,
-      [id]: Math.max(0, prev[id] + delta)
+      [id]: Math.max(0, (prev[id] || 0) + delta)
     }));
   };
 
@@ -129,7 +137,9 @@ function App() {
   
   const spotBaseCost = selectedSpot ? selectedSpot.price * durationHours : 0;
   const dogsCost = dogs * 13 * durationHours;
-  const addonsCost = ADDONS_LIST.reduce((total, addon) => total + (addons[addon.id] * addon.price), 0);
+  
+  const activeSpotAddons = selectedSpot?.addons || ADDONS_LIST;
+  const addonsCost = activeSpotAddons.reduce((total, addon) => total + ((addons[addon.id] || 0) * addon.price), 0);
   const finalTotal = spotBaseCost + extraGuestsCost + dogsCost + addonsCost;
 
   const filteredSpots = spotsList.filter(spot => {
@@ -300,7 +310,7 @@ function App() {
                 <h3>Ajoutez une touche personnelle</h3>
                 <p className="sm-info">Optionnel — améliorez votre expérience.</p>
                 
-                {ADDONS_LIST.map(addon => (
+                {(selectedSpot.addons || ADDONS_LIST).map(addon => (
                   <div className="counter-row addon-row" key={addon.id}>
                     <div>
                       {addon.name}
@@ -308,7 +318,7 @@ function App() {
                     </div>
                     <div className="counter-controls">
                       <button onClick={() => updateAddon(addon.id, -1)}>-</button>
-                      <span>{addons[addon.id]}</span>
+                      <span>{addons[addon.id] || 0}</span>
                       <button onClick={() => updateAddon(addon.id, 1)}>+</button>
                     </div>
                   </div>
@@ -394,21 +404,42 @@ function App() {
                   imgUrl = URL.createObjectURL(fileInput.files[0]);
                 }
 
+                // Extract checked categories
+                const checkedCats = Array.from(form.querySelectorAll('.host-chip input:checked')).map(cb => cb.value);
+
+                // Extract checked addons
+                const configuredAddons = [];
+                const addonCards = form.querySelectorAll('.host-addon-card');
+                addonCards.forEach(card => {
+                  const check = card.querySelector('input[type="checkbox"]');
+                  if (check && check.checked) {
+                    const name = card.querySelector('.toggle-label').innerText;
+                    const id = card.querySelector('.addon-price-hover').id.replace('price-', '');
+                    const originalPrice = ADDONS_LIST.find(a => a.id === id)?.price || 0;
+                    const customPrice = parseFloat(card.querySelector('.addon-price-hover input').value) || originalPrice;
+                    configuredAddons.push({ id, name, price: customPrice });
+                  }
+                });
+
+                const cap = parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10;
+                
                 const newSpot = {
                   id: Date.now(),
                   title: form.querySelector('input[placeholder="Ex: Sunset Rooftop..."]')?.value || 'Nouveau Spot Magique',
                   location: form.querySelector('input[placeholder="Ex: Sidi Bou Saïd, Rue des Arts"]')?.value || 'Lieu Mystère',
-                  category: '✨ Nouveauté',
+                  category: checkedCats.length > 0 ? checkedCats[0] : '✨ Nouveauté',
                   img: imgUrl,
                   price: parseFloat(form.querySelector('input[placeholder="69"]')?.value) || 50,
-                  capacity: parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10,
-                  includedGuests: Math.floor(parseFloat(form.querySelector('input[placeholder="15"]')?.value) / 2) || 5,
+                  capacity: cap,
+                  includedGuests: Math.floor(cap / 2) || 5,
                   extraGuestPrice: parseFloat(form.querySelector('input[placeholder="7"]')?.value) || 5,
                   rating: 'Nouveau',
                   description: form.querySelector('textarea')?.value || "Un spot exceptionnel fraîchement ajouté.",
-                  idealFor: ['Nouveauté', 'Célébrer']
+                  idealFor: checkedCats.length > 0 ? checkedCats.map(c => c.split(' ')[1] || c) : ['Nouveauté', 'Célébrer'],
+                  addons: configuredAddons
                 };
                 setSpotsList([newSpot, ...spotsList]);
+                setUploadedFiles([]);
                 alert('Félicitations ! Ton espace est maintenant en ligne sur VibeSpace 🚀'); 
                 setShowHostModal(false); 
               }}>
@@ -518,10 +549,20 @@ function App() {
                 <div className="host-section">
                   <h3><span className="step-num">4</span> Médias (3 Photos Max)</h3>
                   <div className="file-drop-area">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    <h4>Glisse tes meilleures photos</h4>
-                    <p>Qualité Premium uniquement (Max 5MB)</p>
-                    <input type="file" multiple accept="image/*" />
+                    {uploadedFiles.length > 0 ? (
+                      <div style={{color: 'var(--accent-1)'}}>
+                        <svg viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none" style={{width: 48, height: 48, margin: '0 auto 1rem auto'}}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                        <h4>{uploadedFiles.length} photo(s) importée(s) avec succès ! ✨</h4>
+                        <p>Tu peux sectionner d'autres images pour remplacer cette sélection.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5" fill="none"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <h4>Glisse tes meilleures photos</h4>
+                        <p>Qualité Premium uniquement (Max 5MB)</p>
+                      </>
+                    )}
+                    <input type="file" multiple accept="image/*" onChange={(e) => setUploadedFiles(Array.from(e.target.files))} />
                   </div>
                 </div>
 
