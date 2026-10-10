@@ -248,6 +248,11 @@ function App() {
           <div className="modal-content booking-flow" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelectedSpot(null)}>✕</button>
             <div className="modal-image-carousel">
+              <img 
+                src={selectedSpot.images && selectedSpot.images.length > 0 ? selectedSpot.images[activeImageIndex] : selectedSpot.img} 
+                alt="" 
+                className="carousel-backdrop" 
+              />
               {selectedSpot.images && selectedSpot.images.length > 1 && (
                 <>
                   <button className="carousel-btn prev" onClick={() => setActiveImageIndex(prev => prev === 0 ? selectedSpot.images.length - 1 : prev - 1)}>❮</button>
