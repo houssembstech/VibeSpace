@@ -398,6 +398,36 @@ function App() {
                 </div>
               </div>
 
+              {/* Host Contact Details */}
+              {(selectedSpot.hostEmail || selectedSpot.hostPhone || selectedSpot.hostWhatsapp) && (
+                <div className="host-contact-card">
+                  <div className="hc-header">
+                    <img src="https://ui-avatars.com/api/?name=Host&background=8b5cf6&color=fff" alt="Host Avatar" />
+                    <div>
+                      <h3>Réserver via l'Hôte</h3>
+                      <p>Contactez le propriétaire pour confirmer cette demande :</p>
+                    </div>
+                  </div>
+                  <div className="hc-channels">
+                    {selectedSpot.hostPhone && (
+                      <a href={`tel:${selectedSpot.hostPhone}`} className="hc-btn phone">
+                        📞 {selectedSpot.hostPhone}
+                      </a>
+                    )}
+                    {selectedSpot.hostWhatsapp && (
+                      <a href={`https://wa.me/${selectedSpot.hostWhatsapp}`} target="_blank" rel="noreferrer" className="hc-btn whatsapp">
+                        💬 WhatsApp
+                      </a>
+                    )}
+                    {selectedSpot.hostEmail && (
+                      <a href={`mailto:${selectedSpot.hostEmail}`} className="hc-btn email">
+                        ✉️ Email
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <br />
               <button className="btn-reserve-large full-width">Confirmer ma demande</button>
               <p className="warning-text">Aucun paiement en ligne — le paiement s'effectue sur place à l'arrivée.</p>
