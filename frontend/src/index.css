@@ -57,6 +57,7 @@ body {
 .text-gradient {
   background: var(--accent-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .glitch-text {
@@ -316,6 +317,7 @@ body {
   font-weight: 800;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .btn-book {
