@@ -102,6 +102,7 @@ function App() {
   const [startTime, setStartTime] = useState('23:00');
   const [endTime, setEndTime] = useState('00:00');
   const [adults, setAdults] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [kids, setKids] = useState(0);
   const [dogs, setDogs] = useState(0);
   const [addons, setAddons] = useState(
@@ -112,6 +113,7 @@ function App() {
     if (selectedSpot) {
       const activeAddons = selectedSpot.addons || ADDONS_LIST;
       setAddons(activeAddons.reduce((acc, addon) => ({ ...acc, [addon.id]: 0 }), {}));
+      setActiveImageIndex(0);
     }
   }, [selectedSpot]);
 
@@ -245,18 +247,23 @@ function App() {
         <div className="modal-overlay" onClick={() => setSelectedSpot(null)}>
           <div className="modal-content booking-flow" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelectedSpot(null)}>✕</button>
-            <div className="modal-image-gallery">
-              {(selectedSpot.images && selectedSpot.images.length > 0) ? (
-                selectedSpot.images.map((imgUrl, i) => (
-                  <div key={i} className="modal-image-item">
-                    <img src={imgUrl} alt={`${selectedSpot.title} - Photo ${i+1}`} />
+            <div className="modal-image-carousel">
+              {selectedSpot.images && selectedSpot.images.length > 1 && (
+                <>
+                  <button className="carousel-btn prev" onClick={() => setActiveImageIndex(prev => prev === 0 ? selectedSpot.images.length - 1 : prev - 1)}>❮</button>
+                  <button className="carousel-btn next" onClick={() => setActiveImageIndex(prev => prev === selectedSpot.images.length - 1 ? 0 : prev + 1)}>❯</button>
+                  <div className="carousel-indicators">
+                    {selectedSpot.images.map((_, i) => (
+                      <span key={i} className={`indicator ${i === activeImageIndex ? 'active' : ''}`} />
+                    ))}
                   </div>
-                ))
-              ) : (
-                <div className="modal-image-item">
-                  <img src={selectedSpot.img} alt={selectedSpot.title} />
-                </div>
+                </>
               )}
+              <img 
+                src={selectedSpot.images && selectedSpot.images.length > 0 ? selectedSpot.images[activeImageIndex] : selectedSpot.img} 
+                alt={`${selectedSpot.title} view`} 
+                className="carousel-main-img" 
+              />
             </div>
             
             <div className="modal-body">
