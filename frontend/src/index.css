@@ -427,11 +427,22 @@ body {
   background: rgba(0, 0, 0, 0.8);
 }
 
-.modal-image {
-  position: relative;
-  height: 250px;
+.modal-image-gallery {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
 }
-.modal-image img {
+.modal-image-gallery::-webkit-scrollbar {
+  display: none;
+}
+.modal-image-item {
+  flex: 0 0 100%;
+  height: 250px;
+  scroll-snap-align: start;
+  position: relative;
+}
+.modal-image-item img {
   width: 100%; height: 100%;
   object-fit: cover;
 }

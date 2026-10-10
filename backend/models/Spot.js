@@ -41,6 +41,9 @@ const spotSchema = new mongoose.Schema({
   }],
   allowedAudiences: [{ type: String }],
   animalFee: { type: Number, default: 13 },
+  hostEmail: { type: String },
+  hostPhone: { type: String },
+  hostWhatsapp: { type: String },
   rating: {
     type: Number,
     default: 5.0

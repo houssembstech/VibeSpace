@@ -245,8 +245,18 @@ function App() {
         <div className="modal-overlay" onClick={() => setSelectedSpot(null)}>
           <div className="modal-content booking-flow" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setSelectedSpot(null)}>✕</button>
-            <div className="modal-image">
-              <img src={selectedSpot.img} alt={selectedSpot.title} />
+            <div className="modal-image-gallery">
+              {(selectedSpot.images && selectedSpot.images.length > 0) ? (
+                selectedSpot.images.map((imgUrl, i) => (
+                  <div key={i} className="modal-image-item">
+                    <img src={imgUrl} alt={`${selectedSpot.title} - Photo ${i+1}`} />
+                  </div>
+                ))
+              ) : (
+                <div className="modal-image-item">
+                  <img src={selectedSpot.img} alt={selectedSpot.title} />
+                </div>
+              )}
             </div>
             
             <div className="modal-body">
@@ -430,7 +440,8 @@ function App() {
                 }
 
                 // Extract checked categories
-                const checkedCats = Array.from(form.querySelectorAll('.host-chip input:checked')).map(cb => cb.value);
+                const idealCats = Array.from(form.querySelectorAll('.ideal-chip input:checked')).map(cb => cb.value);
+                const audienceNodes = Array.from(form.querySelectorAll('.audience-chip input:checked')).map(cb => cb.value);
 
                 // Extract checked addons
                 const configuredAddons = [];
@@ -446,17 +457,16 @@ function App() {
                   }
                 });
 
-                const audienceNodes = Array.from(form.querySelectorAll('.audience-chip input:checked')).map(cb => cb.value);
-                const animalFee = parseFloat(form.querySelector('#animal-fee-input')?.value);
-
-                const cap = parseFloat(form.querySelector('input[placeholder="15"]')?.value) || 10;
-                const spotTitle = form.querySelector('input[placeholder="Ex: Sunset Rooftop..."]')?.value || 'Nouveau Spot Magique';
-                const spotLocation = form.querySelector('input[placeholder="Ex: Sidi Bou Saïd, Rue des Arts"]')?.value || 'Lieu Mystère';
-                const spotPrice = parseFloat(form.querySelector('input[placeholder="69"]')?.value) || 50;
-                const spotDesc = form.querySelector('textarea')?.value || "Un spot exceptionnel fraîchement ajouté.";
-                const spotCategory = checkedCats.length > 0 ? checkedCats[0] : '✨ Nouveauté';
-                const spotIdealFor = checkedCats.length > 0 ? checkedCats.map(c => c.split(' ')[1] || c) : ['Nouveauté', 'Célébrer'];
+                const spotTitle = form.querySelector('input[placeholder*="Sunset Rooftop"]').value;
+                const spotLocation = form.querySelector('input[placeholder*="Sidi Bou Saïd"]').value;
+                const spotDesc = form.querySelector('textarea').value;
+                const spotPrice = form.querySelector('input[placeholder="69"]').value;
+                const cap = form.querySelector('input[placeholder="15"]').value;
                 const extraGuest = parseFloat(form.querySelector('input[placeholder="7"]')?.value) || 5;
+                const animalFee = parseFloat(form.querySelector('#animal-fee-input')?.value || '13');
+
+                const spotCategory = idealCats.length > 0 ? idealCats[0] : '✨ Nouveauté';
+                const spotIdealFor = idealCats.length > 0 ? idealCats.map(c => c.split(' ')[1] || c) : ['Nouveauté', 'Célébrer'];
 
                 const submitBtn = form.querySelector('button[type="submit"]');
                 const origBtnText = submitBtn.innerText;
@@ -476,9 +486,12 @@ function App() {
                 formData.append('addons', JSON.stringify(configuredAddons));
                 formData.append('allowedAudiences', JSON.stringify(audienceNodes.length > 0 ? audienceNodes : []));
                 formData.append('animalFee', isNaN(animalFee) ? 13 : animalFee);
+                formData.append('hostEmail', form.querySelector('input[name="hostEmail"]')?.value || '');
+                formData.append('hostPhone', form.querySelector('input[name="hostPhone"]')?.value || '');
+                formData.append('hostWhatsapp', form.querySelector('input[name="hostWhatsapp"]')?.value || '');
 
                 if (uploadedFiles.length > 0) {
-                  uploadedFiles.forEach(f => formData.append('images', f));
+                  uploadedFiles.slice(0, 5).forEach(f => formData.append('images', f));
                 }
 
                 fetch(`${API_URL}/api/spots`, {
@@ -526,11 +539,26 @@ function App() {
                     </div>
                   </div>
 
+                  <div className="host-grid-3 mt-input">
+                    <div className="bb-col">
+                      <label>EMAIL</label>
+                      <input type="email" name="hostEmail" placeholder="ton-email@vibe.com" required style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
+                    </div>
+                    <div className="bb-col">
+                      <label>N° TÉLÉPHONE</label>
+                      <input type="tel" name="hostPhone" placeholder="Ex: 55 123 456" required style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
+                    </div>
+                    <div className="bb-col">
+                      <label>WHATSAPP (Optionnel)</label>
+                      <input type="tel" name="hostWhatsapp" placeholder="Ex: 55 123 456" style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
+                    </div>
+                  </div>
+
                   <div className="bb-col mt-input">
                     <label>IDÉAL POUR</label>
                     <div className="host-chip-group">
                       {COURSES_CATEGORIES.filter(c => c !== '🔥 Tout').map(cat => (
-                         <label key={cat} className="host-chip">
+                         <label key={cat} className="host-chip ideal-chip">
                            <input type="checkbox" value={cat} /> 
                            <span>{cat}</span>
                          </label>
