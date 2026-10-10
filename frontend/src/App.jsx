@@ -366,10 +366,10 @@ function App() {
                     <span>{extraGuestsCost} DT</span>
                   </div>
                 )}
-                {dogsCost > 0 && (
+                {animalsCostTemp > 0 && (
                   <div className="recap-row">
                     <span>Chiens ({dogs})</span>
-                    <span>{dogsCost} DT</span>
+                    <span>{animalsCostTemp} DT</span>
                   </div>
                 )}
                 {addonsCost > 0 && (
