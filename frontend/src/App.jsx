@@ -250,16 +250,16 @@ function App() {
             </div>
             
             <div className="modal-body">
-              <p className="modal-category-location">{selectedSpot.category.split(' ')[1].toUpperCase()} · {selectedSpot.location.toUpperCase()}</p>
+              <p className="modal-category-location">{((selectedSpot.category || '').split(' ')[1] || selectedSpot.category || 'NOUVEAU').toUpperCase()} · {(selectedSpot.location || 'LIEU MYSTÈRE').toUpperCase()}</p>
               <h2 className="modal-big-title">{selectedSpot.title}</h2>
               <p className="modal-description-sub">{selectedSpot.description}</p>
               
               <div className="ideal-for-section">
                 <h3>IDÉAL POUR</h3>
                 <div className="modal-tags">
-                  {selectedSpot.idealFor.map(tag => (
+                  {selectedSpot.idealFor && Array.isArray(selectedSpot.idealFor) ? selectedSpot.idealFor.map(tag => (
                     <span key={tag} className="tag">{tag}</span>
-                  ))}
+                  )) : null}
                 </div>
               </div>
 
