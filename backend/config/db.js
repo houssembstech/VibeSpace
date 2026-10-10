@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
+    const uri = "mongodb+srv://houssembstech_db_user:SHjZkVwdLQRVZHUF@vibespace.3kq06ln.mongodb.net/vibespace?retryWrites=true&w=majority&appName=VibeSpace";
+    const conn = await mongoose.connect(uri, {
       // Configuration pour éviter les avertissements Mongoose
       useNewUrlParser: true,
       useUnifiedTopology: true,
