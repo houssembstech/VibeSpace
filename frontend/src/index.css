@@ -931,8 +931,41 @@ body {
 
 @media (max-width: 768px) {
   .glitch-text { font-size: 2.2rem; }
-  .bottom-nav { display: flex; }
-  .navbar .btn-host { display: none; }
   .hero { padding: 2rem 5% 1rem; }
-  body { padding-bottom: 90px; }
+  .navbar {
+    padding: 1rem 4%;
+  }
+  .navbar-logo-img {
+    height: 36px;
+  }
+  .logo-text {
+    font-size: 1.3rem;
+  }
+  .navbar .btn-host {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(139, 92, 246, 0.12);
+  }
+  .nav-right {
+    gap: 0.6rem;
+  }
+  .profile-pic img {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (max-width: 440px) {
+  .logo-text {
+    font-size: 1.15rem;
+  }
+  .navbar .btn-host {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+  }
 }
