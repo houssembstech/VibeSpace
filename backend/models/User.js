@@ -5,6 +5,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Le nom est obligatoire']
   },
+  spaceName: {
+    type: String,
+    trim: true
+  },
   email: {
     type: String,
     required: [true, "L'email est obligatoire"],

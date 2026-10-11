@@ -16,6 +16,7 @@ export default function AdminModal({
 
   // New user form state
   const [newName, setNewName] = useState('');
+  const [newSpaceName, setNewSpaceName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -40,6 +41,7 @@ export default function AdminModal({
 
     onCreateUser({
       name: newName,
+      spaceName: newSpaceName,
       email: newEmail.trim().toLowerCase(),
       phone: newPhone,
       password: newPassword || '123456',
@@ -49,6 +51,7 @@ export default function AdminModal({
 
     setShowCreateUser(false);
     setNewName('');
+    setNewSpaceName('');
     setNewEmail('');
     setNewPhone('');
     setNewPassword('');
@@ -226,6 +229,7 @@ export default function AdminModal({
                         <td>
                           <div className="user-cell">
                             <strong>{u.name}</strong>
+                            {u.spaceName && <span className="user-space-tag">🏢 {u.spaceName}</span>}
                             <span>{u.email}</span>
                           </div>
                         </td>
@@ -301,6 +305,18 @@ export default function AdminModal({
                     onChange={(e) => setNewName(e.target.value)}
                   />
                 </div>
+
+                {newRole === 'responsable' && (
+                  <div className="auth-field">
+                    <label>Nom de l'Espace / Lieu</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Villa Infinity, Rooftop Sunset..."
+                      value={newSpaceName}
+                      onChange={(e) => setNewSpaceName(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 <div className="auth-field">
                   <label>Email *</label>

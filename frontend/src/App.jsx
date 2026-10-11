@@ -385,7 +385,6 @@ function App() {
               🛡️ Admin
             </button>
           )}
-          <button className="btn-host" onClick={() => setShowHostModal(true)}>Ajouter ton spot ⚡</button>
           <div className="profile-btn-wrapper">
             <button 
               className="profile-pic-btn" 
@@ -396,7 +395,7 @@ function App() {
                   setShowAuthModal(true);
                 }
               }}
-              title={currentUser ? currentUser.name : "Se connecter / S'inscrire"}
+              title={currentUser ? currentUser.name : "Se connecter / Inscription Responsable"}
               aria-label="Profil et Connexion"
             >
               {currentUser ? (
@@ -418,6 +417,11 @@ function App() {
                       {currentUser.role === 'admin' ? '🛡️ Admin' : '🏢 Responsable'}
                     </span>
                   </div>
+                  {currentUser.spaceName && (
+                    <p className="ud-space" style={{ color: 'var(--accent-1)', fontSize: '0.82rem', fontWeight: 600, marginTop: '2px' }}>
+                      🏢 {currentUser.spaceName}
+                    </p>
+                  )}
                   <p className="ud-email">{currentUser.email}</p>
                   {currentUser.phone && <p className="ud-phone">📞 {currentUser.phone}</p>}
                 </div>
@@ -853,7 +857,7 @@ function App() {
                   <div className="host-grid">
                     <div className="bb-col">
                       <label>NOM DU SPOT</label>
-                      <input type="text" placeholder="Ex: Sunset Rooftop..." required />
+                      <input type="text" placeholder="Ex: Sunset Rooftop..." defaultValue={currentUser?.spaceName || ''} required />
                     </div>
                     <div className="bb-col">
                       <label>ADRESSE COMPLÈTE</label>
@@ -864,15 +868,15 @@ function App() {
                   <div className="host-grid-3 mt-input">
                     <div className="bb-col">
                       <label>EMAIL</label>
-                      <input type="email" name="hostEmail" placeholder="ton-email@vibe.com" required style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
+                      <input type="email" name="hostEmail" defaultValue={currentUser?.email || ''} placeholder="ton-email@vibe.com" required style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
                     </div>
                     <div className="bb-col">
                       <label>N° TÉLÉPHONE</label>
-                      <input type="tel" name="hostPhone" placeholder="Ex: 55 123 456" required style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
+                      <input type="tel" name="hostPhone" defaultValue={currentUser?.phone || ''} placeholder="Ex: 55 123 456" required style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
                     </div>
                     <div className="bb-col">
                       <label>WHATSAPP (Optionnel)</label>
-                      <input type="tel" name="hostWhatsapp" placeholder="Ex: 55 123 456" style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
+                      <input type="tel" name="hostWhatsapp" defaultValue={currentUser?.phone || ''} placeholder="Ex: 55 123 456" style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'white', padding:'0.8rem', borderRadius:'8px'}} />
                     </div>
                   </div>
 

@@ -3,6 +3,7 @@ import { useState } from 'react';
 export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess, API_URL }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [name, setName] = useState('');
+  const [spaceName, setSpaceName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -19,8 +20,8 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
     const cleanEmail = email.trim().toLowerCase();
 
     if (authMode === 'register') {
-      if (!name || !cleanEmail || !phone || !password) {
-        setErrorMsg('Veuillez remplir tous les champs obligatoires.');
+      if (!name || !spaceName || !cleanEmail || !phone || !password) {
+        setErrorMsg("Veuillez remplir tous les champs obligatoires (Nom, Nom de l'espace, Téléphone, Email, Mot de passe).");
         setLoading(false);
         return;
       }
@@ -28,19 +29,20 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
         const res = await fetch(`${API_URL}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email: cleanEmail, phone, password })
+          body: JSON.stringify({ name, spaceName, email: cleanEmail, phone, password })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Erreur lors de l'inscription");
         onLoginSuccess(data);
         onClose();
-        alert("Bienvenue sur VibeSpace ! Ton compte Responsable d'espace a été créé avec succès 🏢.");
+        alert(`Bienvenue sur VibeSpace ! Ton compte Responsable pour "${spaceName}" a été créé avec succès 🏢.`);
       } catch (err) {
         // Fallback offline / local
         const isAdmin = cleanEmail === 'houssembs.tech@gmail.com';
         const fallbackUser = {
           _id: 'u_' + Date.now(),
           name,
+          spaceName,
           email: cleanEmail,
           phone,
           role: isAdmin ? 'admin' : 'responsable',
@@ -80,19 +82,6 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
         setLoading(false);
       }
     }
-  };
-
-  const handleAdminQuickLogin = () => {
-    const adminUser = {
-      _id: 'u_admin',
-      name: 'Houssem (Admin)',
-      email: 'houssembs.tech@gmail.com',
-      phone: '+216 20 000 000',
-      role: 'admin',
-      canEdit: true
-    };
-    onLoginSuccess(adminUser);
-    onClose();
   };
 
   return (
@@ -144,6 +133,17 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
                   placeholder="Ex: Sami Ben Amor"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="auth-field">
+                <label>Nom de ton Espace / Lieu * (Obligatoire)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Villa Infinity, Rooftop Sunset, Studio Creative..."
+                  value={spaceName}
+                  onChange={(e) => setSpaceName(e.target.value)}
                 />
               </div>
 
@@ -200,17 +200,6 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
           >
             {loading ? 'Chargement...' : (authMode === 'login' ? 'Se connecter ⚡' : 'Créer mon compte Responsable 🏢')}
           </button>
-
-          {/* Quick Admin Access */}
-          <div className="admin-quick-access">
-            <button
-              type="button"
-              className="btn-quick-admin"
-              onClick={handleAdminQuickLogin}
-            >
-              🛡️ Connexion directe Admin (houssembs.tech@gmail.com)
-            </button>
-          </div>
 
           <p className="auth-switch-prompt">
             {authMode === 'login' ? (

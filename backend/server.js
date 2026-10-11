@@ -189,9 +189,9 @@ app.delete('/api/spots/:id', async (req, res) => {
 // POST /api/auth/register (For Responsables d'espace)
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, spaceName, email, phone, password } = req.body;
     if (!name || !email || !phone || !password) {
-      return res.status(400).json({ message: 'Tous les champs (Nom, Email, Téléphone, Mot de passe) sont obligatoires.' });
+      return res.status(400).json({ message: 'Tous les champs obligatoires (Nom, Nom de l\'espace, Email, Téléphone, Mot de passe) doivent être remplis.' });
     }
 
     const cleanEmail = email.toLowerCase().trim();
@@ -203,6 +203,7 @@ app.post('/api/auth/register', async (req, res) => {
     const isAdmin = cleanEmail === 'houssembs.tech@gmail.com';
     const newUser = new User({
       name,
+      spaceName: spaceName || '',
       email: cleanEmail,
       phone,
       password,
@@ -214,6 +215,7 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(201).json({
       id: newUser._id,
       name: newUser.name,
+      spaceName: newUser.spaceName,
       email: newUser.email,
       phone: newUser.phone,
       role: newUser.role,
@@ -263,6 +265,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       id: user._id,
       name: user.name,
+      spaceName: user.spaceName,
       email: user.email,
       phone: user.phone,
       role: user.role,
@@ -286,7 +289,7 @@ app.get('/api/auth/users', async (req, res) => {
 // POST /api/auth/users (Admin creates a user with chosen role)
 app.post('/api/auth/users', async (req, res) => {
   try {
-    const { name, email, phone, password, role, canEdit } = req.body;
+    const { name, spaceName, email, phone, password, role, canEdit } = req.body;
     if (!name || !email || !phone) {
       return res.status(400).json({ message: 'Nom, email et téléphone obligatoires.' });
     }
@@ -299,6 +302,7 @@ app.post('/api/auth/users', async (req, res) => {
 
     const newUser = new User({
       name,
+      spaceName: spaceName || '',
       email: cleanEmail,
       phone,
       password: password || '123456',
