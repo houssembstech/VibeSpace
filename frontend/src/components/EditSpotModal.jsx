@@ -15,6 +15,8 @@ export default function EditSpotModal({
   const [category, setCategory] = useState(spot.category || '✨ Célébrer');
   const [location, setLocation] = useState(spot.location || '');
   const [pricePerHour, setPricePerHour] = useState(spot.price || spot.pricePerHour || 50);
+  const [priceHalfDay, setPriceHalfDay] = useState(spot.priceHalfDay || '');
+  const [priceFullDay, setPriceFullDay] = useState(spot.priceFullDay || '');
   const [maxCapacity, setMaxCapacity] = useState(spot.capacity || spot.maxCapacity || 10);
   const [hostEmail, setHostEmail] = useState(spot.hostEmail || '');
   const [hostPhone, setHostPhone] = useState(spot.hostPhone || '');
@@ -38,6 +40,8 @@ export default function EditSpotModal({
       location,
       price: Number(pricePerHour),
       pricePerHour: Number(pricePerHour),
+      priceHalfDay: Number(priceHalfDay || 0),
+      priceFullDay: Number(priceFullDay || 0),
       capacity: Number(maxCapacity),
       maxCapacity: Number(maxCapacity),
       hostEmail,
@@ -145,27 +149,47 @@ export default function EditSpotModal({
           {/* Tarification & Capacité */}
           <div className="host-section">
             <h3><span className="step-num">3</span> Tarifs & Capacité</h3>
-            <div className="host-grid">
+            <div className="host-grid-3">
               <div className="bb-col">
                 <label>PRIX / HEURE (DT) *</label>
                 <input
                   type="number"
                   required
-                  min="5"
+                  min="1"
                   value={pricePerHour}
                   onChange={(e) => setPricePerHour(e.target.value)}
                 />
               </div>
               <div className="bb-col">
-                <label>CAPACITÉ MAX (PERSONNES) *</label>
+                <label>DEMI-JOURNÉE (DT)</label>
                 <input
                   type="number"
-                  required
-                  min="1"
-                  value={maxCapacity}
-                  onChange={(e) => setMaxCapacity(e.target.value)}
+                  min="0"
+                  placeholder="Ex: 150"
+                  value={priceHalfDay}
+                  onChange={(e) => setPriceHalfDay(e.target.value)}
                 />
               </div>
+              <div className="bb-col">
+                <label>JOURNÉE (DT)</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Ex: 280"
+                  value={priceFullDay}
+                  onChange={(e) => setPriceFullDay(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="bb-col mt-input">
+              <label>CAPACITÉ MAX (PERSONNES) *</label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={maxCapacity}
+                onChange={(e) => setMaxCapacity(e.target.value)}
+              />
             </div>
           </div>
 

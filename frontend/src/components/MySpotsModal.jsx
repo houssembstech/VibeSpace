@@ -83,7 +83,10 @@ export default function MySpotsModal({
                     <h4>{spot.title}</h4>
                     <p className="my-spot-item-loc">📍 {spot.location}</p>
                     <p className="my-spot-item-details">
-                      <strong>{spot.price} DT/h</strong> • Capacité max: {spot.capacity} pers
+                      <strong>{spot.price || spot.pricePerHour} DT/h</strong>
+                      {spot.priceHalfDay > 0 && <span> • {spot.priceHalfDay} DT/½j</span>}
+                      {spot.priceFullDay > 0 && <span> • {spot.priceFullDay} DT/j</span>}
+                      <span> • Capacité max: {spot.capacity || spot.maxCapacity} pers</span>
                     </p>
                     <div className="my-spot-contacts-preview">
                       <span>Email: {spot.hostEmail || currentUser.email}</span>

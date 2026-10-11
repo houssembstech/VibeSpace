@@ -177,9 +177,12 @@ function App() {
   };
 
   // Booking details state
+  const [bookingMode, setBookingMode] = useState('hour'); // 'hour' | 'halfday' | 'day'
+  const [bookingDays, setBookingDays] = useState(1);
+  const [halfDaySlot, setHalfDaySlot] = useState('14:00 – 19:00');
   const [date, setDate] = useState('2026-10-09');
-  const [startTime, setStartTime] = useState('23:00');
-  const [endTime, setEndTime] = useState('00:00');
+  const [startTime, setStartTime] = useState('20:00');
+  const [endTime, setEndTime] = useState('22:00');
   const [adults, setAdults] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [kids, setKids] = useState(0);
@@ -193,6 +196,11 @@ function App() {
       const activeAddons = selectedSpot.addons || ADDONS_LIST;
       setAddons(activeAddons.reduce((acc, addon) => ({ ...acc, [addon.id]: 0 }), {}));
       setActiveImageIndex(0);
+      setBookingMode('hour');
+      setBookingDays(1);
+      setAdults(1);
+      setKids(0);
+      setDogs(0);
     }
   }, [selectedSpot]);
 
@@ -208,7 +216,11 @@ function App() {
               ...s,
               id: s._id,
               price: s.pricePerHour,
-              capacity: s.maxCapacity,
+              pricePerHour: s.pricePerHour,
+              priceHalfDay: s.priceHalfDay || 0,
+              priceFullDay: s.priceFullDay || 0,
+              capacity: s.maxCapacity || s.capacity || 10,
+              maxCapacity: s.maxCapacity || s.capacity || 10,
               status: s.status || 'approved',
               img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
             }));
@@ -326,6 +338,8 @@ function App() {
     formData.append('description', updatedData.description);
     formData.append('category', updatedData.category);
     formData.append('pricePerHour', updatedData.pricePerHour);
+    formData.append('priceHalfDay', updatedData.priceHalfDay || 0);
+    formData.append('priceFullDay', updatedData.priceFullDay || 0);
     formData.append('maxCapacity', updatedData.maxCapacity);
     formData.append('hostEmail', updatedData.hostEmail);
     formData.append('hostPhone', updatedData.hostPhone);
@@ -347,7 +361,11 @@ function App() {
         ...data,
         id: data._id,
         price: data.pricePerHour,
+        pricePerHour: data.pricePerHour,
+        priceHalfDay: data.priceHalfDay || updatedData.priceHalfDay || 0,
+        priceFullDay: data.priceFullDay || updatedData.priceFullDay || 0,
         capacity: data.maxCapacity,
+        maxCapacity: data.maxCapacity,
         img: data.images && data.images.length > 0 ? data.images[0] : (data.imageUrl || updatedData.img)
       };
       setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? savedSpot : s));
@@ -370,19 +388,48 @@ function App() {
     }));
   };
 
-  // Calculations
-  const durationHours = 1; // Simplified for UI, normaly derived from startTime and endTime
-  const totalPeople = adults + kids;
-  
-  let extraGuestsCost = 0;
-  if (selectedSpot && totalPeople > selectedSpot.includedGuests) {
-    extraGuestsCost = (totalPeople - selectedSpot.includedGuests) * selectedSpot.extraGuestPrice * durationHours;
+  // Derive duration in hours
+  let durationHours = 1;
+  if (startTime && endTime) {
+    const sH = parseInt(startTime.split(':')[0], 10);
+    const eH = parseInt(endTime.split(':')[0], 10);
+    let diff = eH - sH;
+    if (diff <= 0) diff += 24;
+    durationHours = Math.max(1, diff);
   }
-  
-  const spotBaseCost = selectedSpot ? selectedSpot.price * durationHours : 0;
+
+  const maxCap = selectedSpot ? (selectedSpot.capacity || selectedSpot.maxCapacity || 10) : 10;
+  const totalPeople = adults + kids;
+
+  const hourlyRate = selectedSpot ? (selectedSpot.pricePerHour || selectedSpot.price || 0) : 0;
+  const halfDayRate = selectedSpot ? (selectedSpot.priceHalfDay > 0 ? selectedSpot.priceHalfDay : Math.round(hourlyRate * 4 * 0.85)) : 0;
+  const fullDayRate = selectedSpot ? (selectedSpot.priceFullDay > 0 ? selectedSpot.priceFullDay : Math.round(hourlyRate * 8 * 0.8)) : 0;
+
+  let spotBaseCost = 0;
+  let baseUnitLabel = '';
+
+  if (bookingMode === 'hour') {
+    spotBaseCost = hourlyRate * durationHours;
+    baseUnitLabel = `${durationHours}h × ${hourlyRate} DT`;
+  } else if (bookingMode === 'halfday') {
+    spotBaseCost = halfDayRate;
+    baseUnitLabel = `Demi-journée · ${halfDayRate} DT`;
+  } else if (bookingMode === 'day') {
+    spotBaseCost = fullDayRate * bookingDays;
+    baseUnitLabel = `${bookingDays} jour(s) × ${fullDayRate} DT`;
+  }
+
+  const includedGuests = selectedSpot ? (selectedSpot.includedGuests || Math.floor(maxCap / 2) || 1) : 1;
+  let extraGuestsCost = 0;
+  if (selectedSpot && totalPeople > includedGuests) {
+    const guestFactor = bookingMode === 'day' ? bookingDays : (bookingMode === 'halfday' ? 2 : durationHours);
+    extraGuestsCost = (totalPeople - includedGuests) * (selectedSpot.extraGuestPrice || 0) * guestFactor;
+  }
+
   const animalCostPerHr = selectedSpot?.animalFee !== undefined ? selectedSpot.animalFee : 13;
-  const animalsCostTemp = dogs * animalCostPerHr * durationHours;
-  
+  const animalFactor = bookingMode === 'day' ? bookingDays : (bookingMode === 'halfday' ? 2 : durationHours);
+  const animalsCostTemp = dogs * animalCostPerHr * animalFactor;
+
   const activeSpotAddons = selectedSpot?.addons || ADDONS_LIST;
   const addonsCost = activeSpotAddons.reduce((total, addon) => total + ((addons[addon.id] || 0) * addon.price), 0);
   const finalTotal = spotBaseCost + extraGuestsCost + animalsCostTemp + addonsCost;
@@ -529,8 +576,12 @@ function App() {
               </div>
               <p className="spot-location">📍 {spot.location}</p>
               <div className="spot-details">
-                <span className="spot-capacity">👥 Jusqu'à {spot.capacity} pers.</span>
-                <span className="spot-price"><strong className="price-gradient">{spot.price} DT</strong> / h</span>
+                <span className="spot-capacity">👥 Jusqu'à {spot.capacity || spot.maxCapacity} pers.</span>
+                <span className="spot-price">
+                  <strong className="price-gradient">{spot.price || spot.pricePerHour} DT</strong>/h
+                  {spot.priceHalfDay > 0 && <span className="price-badge-extra"> · {spot.priceHalfDay} DT/½j</span>}
+                  {spot.priceFullDay > 0 && <span className="price-badge-extra"> · {spot.priceFullDay} DT/j</span>}
+                </span>
               </div>
               <button className="btn-book">Consulter</button>
             </div>
@@ -582,45 +633,163 @@ function App() {
               </div>
 
               <div className="booking-price-header">
-                <span className="b-price"><strong className="price-gradient">{selectedSpot.price} DT</strong> /HR</span>
-                <span className="b-spots-remaining">Jusqu'à {selectedSpot.capacity} personnes max</span>
+                <div className="b-price-group">
+                  <span className="b-price"><strong className="price-gradient">{selectedSpot.price || selectedSpot.pricePerHour} DT</strong> /HR</span>
+                  <div className="b-price-sub">
+                    {selectedSpot.priceHalfDay > 0 && <span>☀️ <strong>{selectedSpot.priceHalfDay} DT</strong> Demi-journée </span>}
+                    {selectedSpot.priceFullDay > 0 && <span>📅 <strong>{selectedSpot.priceFullDay} DT</strong> Journée entière</span>}
+                  </div>
+                </div>
+                <span className="b-spots-remaining">👥 Jusqu'à {maxCap} personnes max</span>
+              </div>
+
+              {/* Booking Mode Selector Tabs */}
+              <div className="booking-mode-tabs">
+                <button
+                  type="button"
+                  className={`mode-tab-btn ${bookingMode === 'hour' ? 'active' : ''}`}
+                  onClick={() => setBookingMode('hour')}
+                >
+                  <span>⏱️ Par Heure</span>
+                  <span className="mode-tab-sub">{selectedSpot.price || selectedSpot.pricePerHour} DT/h</span>
+                </button>
+                <button
+                  type="button"
+                  className={`mode-tab-btn ${bookingMode === 'halfday' ? 'active' : ''}`}
+                  onClick={() => setBookingMode('halfday')}
+                >
+                  <span>☀️ Demi-Journée</span>
+                  <span className="mode-tab-sub">{selectedSpot.priceHalfDay > 0 ? `${selectedSpot.priceHalfDay} DT` : `${halfDayRate} DT`}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`mode-tab-btn ${bookingMode === 'day' ? 'active' : ''}`}
+                  onClick={() => setBookingMode('day')}
+                >
+                  <span>📅 Par Journée</span>
+                  <span className="mode-tab-sub">{selectedSpot.priceFullDay > 0 ? `${selectedSpot.priceFullDay} DT/j` : `${fullDayRate} DT/j`}</span>
+                </button>
               </div>
 
               <div className="booking-box">
-                <div className="bb-row">
-                  <div className="bb-col">
-                    <label>DATE</label>
-                    <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-                  </div>
-                </div>
-                <div className="bb-row">
-                   <div className="bb-col">
-                    <label>CRÉNEAU</label>
-                    <div className="time-selects">
-                      <select value={startTime} onChange={e => setStartTime(e.target.value)}>
-                        <option>22:00</option>
-                        <option>23:00</option>
-                      </select>
-                      <span>–</span>
-                      <select value={endTime} onChange={e => setEndTime(e.target.value)}>
-                        <option>23:00</option>
-                        <option>00:00</option>
-                      </select>
-                      <span className="duration-pill">{durationHours} H</span>
+                {bookingMode === 'hour' && (
+                  <>
+                    <div className="bb-row">
+                      <div className="bb-col">
+                        <label>DATE DE RÉSERVATION</label>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                      </div>
                     </div>
-                  </div>
-                </div>
+                    <div className="bb-row">
+                      <div className="bb-col">
+                        <label>CRÉNEAU HORAIRE</label>
+                        <div className="time-selects">
+                          <select value={startTime} onChange={e => setStartTime(e.target.value)}>
+                            <option>08:00</option>
+                            <option>10:00</option>
+                            <option>14:00</option>
+                            <option>18:00</option>
+                            <option>20:00</option>
+                            <option>22:00</option>
+                          </select>
+                          <span>–</span>
+                          <select value={endTime} onChange={e => setEndTime(e.target.value)}>
+                            <option>12:00</option>
+                            <option>16:00</option>
+                            <option>20:00</option>
+                            <option>22:00</option>
+                            <option>23:00</option>
+                            <option>00:00</option>
+                          </select>
+                          <span className="duration-pill">{durationHours} H</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {bookingMode === 'halfday' && (
+                  <>
+                    <div className="bb-row">
+                      <div className="bb-col">
+                        <label>DATE</label>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="bb-row">
+                      <div className="bb-col">
+                        <label>CRÉNEAU DEMI-JOURNÉE</label>
+                        <div className="slot-selection-grid">
+                          {[
+                            { label: '🌅 Matinée', time: '08:00 – 13:00' },
+                            { label: '🌇 Après-midi', time: '14:00 – 19:00' },
+                            { label: '🌙 Soirée', time: '20:00 – 01:00' }
+                          ].map(slot => (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              className={`slot-pill-btn ${halfDaySlot === slot.time ? 'active' : ''}`}
+                              onClick={() => setHalfDaySlot(slot.time)}
+                            >
+                              <strong>{slot.label}</strong>
+                              <div style={{ fontSize: '0.72rem', opacity: 0.8 }}>{slot.time}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {bookingMode === 'day' && (
+                  <>
+                    <div className="bb-row">
+                      <div className="bb-col">
+                        <label>DATE D'ARRIVÉE</label>
+                        <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="counter-row" style={{ padding: '0.5rem 0', borderBottom: 'none' }}>
+                      <div>
+                        <strong>NOMBRE DE JOURS</strong>
+                        <div className="sm-info">Tarif journalier ({fullDayRate} DT / jour)</div>
+                      </div>
+                      <div className="counter-controls">
+                        <button type="button" onClick={() => setBookingDays(Math.max(1, bookingDays - 1))}>-</button>
+                        <span style={{ minWidth: '40px', textAlign: 'center', fontWeight: 'bold' }}>{bookingDays} jour{bookingDays > 1 ? 's' : ''}</span>
+                        <button type="button" onClick={() => setBookingDays(bookingDays + 1)}>+</button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="guests-section">
-                <h3>QUI VIENT ?</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>QUI VIENT ?</h3>
+                  <span style={{ fontSize: '0.85rem', color: totalPeople >= maxCap ? '#f87171' : 'var(--text-muted)' }}>
+                    Total : {totalPeople} / {maxCap} pers.
+                  </span>
+                </div>
+
+                {totalPeople >= maxCap && (
+                  <div className="capacity-alert-banner">
+                    ⚠️ Capacité maximale de cet espace ({maxCap} personnes) atteinte.
+                  </div>
+                )}
+
                 {(!selectedSpot.allowedAudiences || selectedSpot.allowedAudiences.includes('Adultes (+18)') || selectedSpot.allowedAudiences.includes('Famille') || selectedSpot.allowedAudiences.includes('Couple')) && (
                   <div className="counter-row">
                     <div>Adultes</div>
                     <div className="counter-controls">
-                      <button onClick={() => setAdults(Math.max(1, adults - 1))}>-</button>
+                      <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}>-</button>
                       <span>{adults}</span>
-                      <button onClick={() => setAdults(adults + 1)}>+</button>
+                      <button 
+                        type="button" 
+                        disabled={totalPeople >= maxCap}
+                        onClick={() => totalPeople < maxCap && setAdults(adults + 1)}
+                        style={{ opacity: totalPeople >= maxCap ? 0.35 : 1, cursor: totalPeople >= maxCap ? 'not-allowed' : 'pointer' }}
+                      >+</button>
                     </div>
                   </div>
                 )}
@@ -628,9 +797,14 @@ function App() {
                   <div className="counter-row">
                     <div>Enfants</div>
                     <div className="counter-controls">
-                      <button onClick={() => setKids(Math.max(0, kids - 1))}>-</button>
+                      <button type="button" onClick={() => setKids(Math.max(0, kids - 1))}>-</button>
                       <span>{kids}</span>
-                      <button onClick={() => setKids(kids + 1)}>+</button>
+                      <button 
+                        type="button" 
+                        disabled={totalPeople >= maxCap}
+                        onClick={() => totalPeople < maxCap && setKids(kids + 1)}
+                        style={{ opacity: totalPeople >= maxCap ? 0.35 : 1, cursor: totalPeople >= maxCap ? 'not-allowed' : 'pointer' }}
+                      >+</button>
                     </div>
                   </div>
                 )}
@@ -638,12 +812,12 @@ function App() {
                   <div className="counter-row">
                     <div>
                       Animaux
-                      <div className="sm-info">{(selectedSpot.animalFee !== undefined ? selectedSpot.animalFee : 13)} DT / animal / heure</div>
+                      <div className="sm-info">{(selectedSpot.animalFee !== undefined ? selectedSpot.animalFee : 13)} DT / animal</div>
                     </div>
                     <div className="counter-controls">
-                      <button onClick={() => setDogs(Math.max(0, dogs - 1))}>-</button>
+                      <button type="button" onClick={() => setDogs(Math.max(0, dogs - 1))}>-</button>
                       <span>{dogs}</span>
-                      <button onClick={() => setDogs(dogs + 1)}>+</button>
+                      <button type="button" onClick={() => setDogs(dogs + 1)}>+</button>
                     </div>
                   </div>
                 )}
@@ -660,9 +834,9 @@ function App() {
                       <div className="sm-info">{addon.price} DT / unité</div>
                     </div>
                     <div className="counter-controls">
-                      <button onClick={() => updateAddon(addon.id, -1)}>-</button>
+                      <button type="button" onClick={() => updateAddon(addon.id, -1)}>-</button>
                       <span>{addons[addon.id] || 0}</span>
-                      <button onClick={() => updateAddon(addon.id, 1)}>+</button>
+                      <button type="button" onClick={() => updateAddon(addon.id, 1)}>+</button>
                     </div>
                   </div>
                 ))}
@@ -671,22 +845,26 @@ function App() {
               <div className="recap-section">
                 <h3>RÉCAPITULATIF</h3>
                 <div className="recap-row">
-                  <span>Créneau · {startTime} – {endTime}</span>
+                  <span>
+                    {bookingMode === 'hour' && `Créneau · ${startTime} – ${endTime}`}
+                    {bookingMode === 'halfday' && `Demi-journée · ${halfDaySlot}`}
+                    {bookingMode === 'day' && `Séjour · ${bookingDays} jour(s)`}
+                  </span>
                   <span>{date}</span>
                 </div>
                 <div className="recap-row">
-                  <span>Heures · {durationHours} × {selectedSpot.price} DT</span>
+                  <span>Base · {baseUnitLabel}</span>
                   <span>{spotBaseCost} DT</span>
                 </div>
                 {extraGuestsCost > 0 && (
                   <div className="recap-row">
-                    <span>Invités suppl. ({totalPeople - selectedSpot.includedGuests})</span>
+                    <span>Invités suppl. ({totalPeople - includedGuests})</span>
                     <span>{extraGuestsCost} DT</span>
                   </div>
                 )}
                 {animalsCostTemp > 0 && (
                   <div className="recap-row">
-                    <span>Chiens ({dogs})</span>
+                    <span>Animaux ({dogs})</span>
                     <span>{animalsCostTemp} DT</span>
                   </div>
                 )}
@@ -701,8 +879,8 @@ function App() {
                   <span className="price-gradient">{finalTotal} DT</span>
                 </div>
                 <div className="recap-summary-tags">
-                  <span>Jusqu'à {selectedSpot.capacity} invités</span>
-                  <span>{selectedSpot.location}</span>
+                  <span>👥 Capacité max : {maxCap} invités</span>
+                  <span>📍 {selectedSpot.location}</span>
                 </div>
               </div>
 
@@ -795,12 +973,14 @@ function App() {
                   }
                 });
 
-                const spotTitle = form.querySelector('input[placeholder*="Sunset Rooftop"]').value;
-                const spotLocation = form.querySelector('input[placeholder*="Sidi Bou Saïd"]').value;
-                const spotDesc = form.querySelector('textarea').value;
-                const spotPrice = form.querySelector('input[placeholder="69"]').value;
-                const cap = form.querySelector('input[placeholder="15"]').value;
-                const extraGuest = parseFloat(form.querySelector('input[placeholder="7"]')?.value) || 5;
+                const spotTitle = form.querySelector('input[name="title"]')?.value || form.querySelector('input[placeholder*="Sunset Rooftop"]')?.value;
+                const spotLocation = form.querySelector('input[name="location"]')?.value || form.querySelector('input[placeholder*="Sidi Bou Saïd"]')?.value;
+                const spotDesc = form.querySelector('textarea[name="description"]')?.value || form.querySelector('textarea')?.value;
+                const spotPrice = parseFloat(form.querySelector('input[name="pricePerHour"]')?.value) || 50;
+                const priceHalfDay = parseFloat(form.querySelector('input[name="priceHalfDay"]')?.value) || 0;
+                const priceFullDay = parseFloat(form.querySelector('input[name="priceFullDay"]')?.value) || 0;
+                const cap = parseInt(form.querySelector('input[name="maxCapacity"]')?.value, 10) || 10;
+                const extraGuest = parseFloat(form.querySelector('input[name="extraGuestPrice"]')?.value) || 5;
                 const animalFee = parseFloat(form.querySelector('#animal-fee-input')?.value || '13');
 
                 const spotCategory = idealCats.length > 0 ? idealCats[0] : '✨ Nouveauté';
@@ -817,6 +997,8 @@ function App() {
                 formData.append('description', spotDesc);
                 formData.append('category', spotCategory);
                 formData.append('pricePerHour', spotPrice);
+                formData.append('priceHalfDay', priceHalfDay);
+                formData.append('priceFullDay', priceFullDay);
                 formData.append('maxCapacity', cap);
                 formData.append('includedGuests', Math.floor(cap / 2) || 5);
                 formData.append('extraGuestPrice', extraGuest);
@@ -853,8 +1035,12 @@ function App() {
                   const finalSpot = {
                     ...savedSpot,
                     id: savedSpot._id || ('spot_' + Date.now()),
-                    price: savedSpot.pricePerHour || parseFloat(spotPrice),
-                    capacity: savedSpot.maxCapacity || parseInt(cap),
+                    price: savedSpot.pricePerHour || spotPrice,
+                    pricePerHour: savedSpot.pricePerHour || spotPrice,
+                    priceHalfDay: savedSpot.priceHalfDay || priceHalfDay,
+                    priceFullDay: savedSpot.priceFullDay || priceFullDay,
+                    capacity: savedSpot.maxCapacity || cap,
+                    maxCapacity: savedSpot.maxCapacity || cap,
                     status: savedSpot.status || spotInitialStatus,
                     hostEmail: savedSpot.hostEmail || inputHostEmail,
                     hostPhone: savedSpot.hostPhone || inputHostPhone,
@@ -885,11 +1071,11 @@ function App() {
                   <div className="host-grid">
                     <div className="bb-col">
                       <label>NOM DU SPOT</label>
-                      <input type="text" placeholder="Ex: Sunset Rooftop..." defaultValue={currentUser?.spaceName || ''} required />
+                      <input type="text" name="title" placeholder="Ex: Sunset Rooftop..." defaultValue={currentUser?.spaceName || ''} required />
                     </div>
                     <div className="bb-col">
                       <label>ADRESSE COMPLÈTE</label>
-                      <input type="text" placeholder="Ex: Sidi Bou Saïd, Rue des Arts" required />
+                      <input type="text" name="location" placeholder="Ex: Sidi Bou Saïd, Rue des Arts" required />
                     </div>
                   </div>
 
@@ -940,7 +1126,7 @@ function App() {
 
                   <div className="bb-col mt-input">
                     <label>DESCRIPTION IMMERSIVE</label>
-                    <textarea rows="3" placeholder="Parlez de l'ambiance, de la vue, du vibe global..." required></textarea>
+                    <textarea name="description" rows="3" placeholder="Parlez de l'ambiance, de la vue, du vibe global..." required></textarea>
                   </div>
                 </div>
 
@@ -948,24 +1134,41 @@ function App() {
                   <h3><span className="step-num">2</span> Tarifs & Capacité</h3>
                   <div className="host-grid-3">
                     <div className="bb-col">
-                      <label>PRIX / HEURE</label>
+                      <label>PRIX / HEURE *</label>
                       <div className="val-input-wrapper">
-                        <input type="number" placeholder="69" required />
+                        <input type="number" name="pricePerHour" placeholder="60" min="1" required />
                         <span className="val-unit">DT</span>
                       </div>
                     </div>
                     <div className="bb-col">
-                      <label>CAPACITÉ MAX</label>
+                      <label>DEMI-JOURNÉE</label>
                       <div className="val-input-wrapper">
-                        <input type="number" placeholder="15" required />
+                        <input type="number" name="priceHalfDay" placeholder="150" min="0" />
+                        <span className="val-unit">DT</span>
+                      </div>
+                    </div>
+                    <div className="bb-col">
+                      <label>JOURNÉE ENTIÈRE</label>
+                      <div className="val-input-wrapper">
+                        <input type="number" name="priceFullDay" placeholder="280" min="0" />
+                        <span className="val-unit">DT</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="host-grid mt-input">
+                    <div className="bb-col">
+                      <label>CAPACITÉ MAX (PERSONNES) *</label>
+                      <div className="val-input-wrapper">
+                        <input type="number" name="maxCapacity" placeholder="24" min="1" required />
                         <span className="val-unit">Pers</span>
                       </div>
                     </div>
                     <div className="bb-col">
-                      <label>FRAIS SUPPLÉM.</label>
+                      <label>FRAIS SUPPLÉM. / INVITÉ</label>
                       <div className="val-input-wrapper">
-                        <input type="number" placeholder="7" required />
-                        <span className="val-unit">DT/p/h</span>
+                        <input type="number" name="extraGuestPrice" placeholder="7" min="0" />
+                        <span className="val-unit">DT/p</span>
                       </div>
                     </div>
                   </div>

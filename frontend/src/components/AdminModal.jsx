@@ -146,8 +146,12 @@ export default function AdminModal({
                           <h4>{spot.title}</h4>
                           <span className="admin-spot-cat">{spot.category}</span>
                         </div>
-                        <p className="admin-spot-loc">📍 {spot.location}</p>
-                        <p className="admin-spot-price">{spot.price} DT/heure • Max {spot.capacity} pers</p>
+                        <p className="admin-spot-price">
+                          {spot.price || spot.pricePerHour} DT/heure
+                          {spot.priceHalfDay > 0 && ` • ${spot.priceHalfDay} DT/½j`}
+                          {spot.priceFullDay > 0 && ` • ${spot.priceFullDay} DT/j`}
+                          {` • Max ${spot.capacity || spot.maxCapacity} pers`}
+                        </p>
 
                         <div className="admin-host-contacts">
                           <span>👤 Hôte : <strong>{spot.hostEmail || 'Non spécifié'}</strong></span>

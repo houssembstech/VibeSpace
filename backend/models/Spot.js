@@ -22,6 +22,14 @@ const spotSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  priceHalfDay: {
+    type: Number,
+    default: 0
+  },
+  priceFullDay: {
+    type: Number,
+    default: 0
+  },
   maxCapacity: {
     type: Number,
     required: true
