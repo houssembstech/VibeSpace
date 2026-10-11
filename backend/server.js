@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const { upload } = require('./config/cloudinary');
 const Spot = require('./models/Spot');
@@ -176,9 +177,13 @@ app.put('/api/spots/:id', upload.array('images', 5), async (req, res) => {
 // DELETE Spot
 app.delete('/api/spots/:id', async (req, res) => {
   try {
-    const deleted = await Spot.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.json({ message: 'Spot supprimé avec succès (ID non-Mongo)', id });
+    }
+    const deleted = await Spot.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ message: 'Spot introuvable' });
-    res.json({ message: 'Spot supprimé avec succès', id: req.params.id });
+    res.json({ message: 'Spot supprimé avec succès', id });
   } catch (error) {
     res.status(500).json({ message: 'Erreur suppression spot', error: error.message });
   }

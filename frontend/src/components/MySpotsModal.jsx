@@ -4,7 +4,8 @@ export default function MySpotsModal({
   spotsList,
   currentUser,
   onEditSpot,
-  onAddNewSpot
+  onAddNewSpot,
+  onDeleteSpot
 }) {
   if (!isOpen || !currentUser) return null;
 
@@ -100,6 +101,16 @@ export default function MySpotsModal({
                       ) : (
                         <button className="btn-edit-spot-action disabled" disabled title="Modification verrouillée par l'administrateur">
                           🔒 Modification bloquée
+                        </button>
+                      )}
+                      {canEdit && onDeleteSpot && (
+                        <button
+                          className="btn-admin-action btn-delete"
+                          onClick={() => onDeleteSpot(spot.id || spot._id)}
+                          title="Supprimer définitivement cet espace"
+                          style={{ padding: '0.45rem 0.8rem', fontSize: '0.8rem' }}
+                        >
+                          🗑️ Supprimer
                         </button>
                       )}
                     </div>

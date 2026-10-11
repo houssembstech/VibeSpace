@@ -97,9 +97,20 @@ const INITIAL_SPOTS = [
   }
 ];
 
+const getDeletedSpotIds = () => {
+  try {
+    return JSON.parse(localStorage.getItem('vibespace_deleted_spots') || '[]');
+  } catch {
+    return [];
+  }
+};
+
 function App() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const [spotsList, setSpotsList] = useState(INITIAL_SPOTS);
+  const [spotsList, setSpotsList] = useState(() => {
+    const deleted = getDeletedSpotIds();
+    return INITIAL_SPOTS.filter(s => !deleted.includes(s.id) && !deleted.includes(s._id) && !deleted.includes(String(s.id)));
+  });
   const [activeCategory, setActiveCategory] = useState('🔥 Tout');
   const [likedSpots, setLikedSpots] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -189,18 +200,25 @@ function App() {
     fetch(`${API_URL}/api/spots?all=true`)
       .then(res => res.json())
       .then(data => {
-        if(data && Array.isArray(data) && data.length > 0) {
-          const dbSpots = data.map(s => ({
-            ...s,
-            id: s._id,
-            price: s.pricePerHour,
-            capacity: s.maxCapacity,
-            status: s.status || 'approved',
-            img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
-          }));
-          const dbIds = new Set(dbSpots.map(s => s.id));
-          const initials = INITIAL_SPOTS.filter(s => !dbIds.has(s.id));
-          setSpotsList([...dbSpots, ...initials]);
+        if(data && Array.isArray(data)) {
+          const deleted = getDeletedSpotIds();
+          const dbSpots = data
+            .filter(s => !deleted.includes(s._id) && !deleted.includes(s.id) && !deleted.includes(String(s._id)))
+            .map(s => ({
+              ...s,
+              id: s._id,
+              price: s.pricePerHour,
+              capacity: s.maxCapacity,
+              status: s.status || 'approved',
+              img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
+            }));
+
+          if (dbSpots.length > 0) {
+            setSpotsList(dbSpots);
+          } else {
+            const initials = INITIAL_SPOTS.filter(s => !deleted.includes(s.id) && !deleted.includes(s._id) && !deleted.includes(String(s.id)));
+            setSpotsList(initials);
+          }
         }
       })
       .catch(err => console.error("Spots API Fetch Error:", err));
@@ -244,8 +262,18 @@ function App() {
 
   const handleDeleteSpot = async (spotId) => {
     if (!window.confirm("Confirmer la suppression définitive de ce spot ?")) return;
-    setSpotsList(prev => prev.filter(s => s.id !== spotId && s._id !== spotId));
-    if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) {
+
+    // Immediately persist deletion in localStorage so it never reappears on refresh
+    try {
+      const currentDeleted = getDeletedSpotIds();
+      const nextDeleted = Array.from(new Set([...currentDeleted, spotId, String(spotId)]));
+      localStorage.setItem('vibespace_deleted_spots', JSON.stringify(nextDeleted));
+    } catch (e) {
+      console.warn("Could not save to localStorage:", e);
+    }
+
+    setSpotsList(prev => prev.filter(s => s.id !== spotId && s._id !== spotId && String(s.id) !== String(spotId) && String(s._id) !== String(spotId)));
+    if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId || String(selectedSpot.id) === String(spotId) || String(selectedSpot._id) === String(spotId))) {
       setSelectedSpot(null);
     }
     try {
@@ -1045,6 +1073,7 @@ function App() {
         currentUser={currentUser}
         onEditSpot={(spot) => setEditingSpot(spot)}
         onAddNewSpot={() => setShowHostModal(true)}
+        onDeleteSpot={handleDeleteSpot}
       />
 
       {/* Edit Spot Modal */}
