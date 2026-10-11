@@ -208,7 +208,7 @@ app.delete('/api/spots/:id', async (req, res) => {
 // POST /api/auth/register (For Responsables d'espace)
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, spaceName, email, phone, password } = req.body;
+    const { name, spaceName, email, phone, password, pack } = req.body;
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: 'Tous les champs obligatoires (Nom, Nom de l\'espace, Email, Téléphone, Mot de passe) doivent être remplis.' });
     }
@@ -220,6 +220,10 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     const isAdmin = cleanEmail === 'houssembs.tech@gmail.com';
+    const chosenPack = pack === 'pack_2' ? 'pack_2' : 'pack_1';
+    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
+    const canEditAllowed = isAdmin ? true : (chosenPack === 'pack_2');
+
     const newUser = new User({
       name,
       spaceName: spaceName || '',
@@ -227,7 +231,9 @@ app.post('/api/auth/register', async (req, res) => {
       phone,
       password,
       role: isAdmin ? 'admin' : 'responsable',
-      canEdit: isAdmin ? true : false
+      canEdit: canEditAllowed,
+      pack: chosenPack,
+      packPrice
     });
 
     await newUser.save();
@@ -238,7 +244,9 @@ app.post('/api/auth/register', async (req, res) => {
       email: newUser.email,
       phone: newUser.phone,
       role: newUser.role,
-      canEdit: newUser.canEdit
+      canEdit: newUser.canEdit,
+      pack: newUser.pack,
+      packPrice: newUser.packPrice
     });
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de l'inscription", error: error.message });
@@ -263,12 +271,15 @@ app.post('/api/auth/login', async (req, res) => {
           phone: '+216 20 000 000',
           password: password || 'admin',
           role: 'admin',
-          canEdit: true
+          canEdit: true,
+          pack: 'pack_2',
+          packPrice: 120
         });
         await user.save();
       } else {
         user.role = 'admin';
         user.canEdit = true;
+        user.pack = 'pack_2';
         await user.save();
       }
     }
@@ -288,7 +299,9 @@ app.post('/api/auth/login', async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      canEdit: user.canEdit
+      canEdit: user.canEdit,
+      pack: user.pack || 'pack_1',
+      packPrice: user.packPrice || 70
     });
   } catch (error) {
     res.status(500).json({ message: 'Erreur lors de la connexion', error: error.message });
@@ -308,7 +321,7 @@ app.get('/api/auth/users', async (req, res) => {
 // POST /api/auth/users (Admin creates a user with chosen role)
 app.post('/api/auth/users', async (req, res) => {
   try {
-    const { name, spaceName, email, phone, password, role, canEdit } = req.body;
+    const { name, spaceName, email, phone, password, role, canEdit, pack } = req.body;
     if (!name || !email || !phone) {
       return res.status(400).json({ message: 'Nom, email et téléphone obligatoires.' });
     }
@@ -319,6 +332,9 @@ app.post('/api/auth/users', async (req, res) => {
       return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
     }
 
+    const chosenPack = pack || (canEdit ? 'pack_2' : 'pack_1');
+    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
+
     const newUser = new User({
       name,
       spaceName: spaceName || '',
@@ -326,7 +342,9 @@ app.post('/api/auth/users', async (req, res) => {
       phone,
       password: password || '123456',
       role: role || 'responsable',
-      canEdit: canEdit !== undefined ? canEdit : (role === 'admin' ? true : false)
+      canEdit: canEdit !== undefined ? canEdit : (role === 'admin' || chosenPack === 'pack_2'),
+      pack: chosenPack,
+      packPrice
     });
 
     await newUser.save();
@@ -340,7 +358,12 @@ app.post('/api/auth/users', async (req, res) => {
 app.patch('/api/auth/users/:id/can-edit', async (req, res) => {
   try {
     const { canEdit } = req.body;
-    const user = await User.findByIdAndUpdate(req.params.id, { canEdit: !!canEdit }, { new: true });
+    const updateData = { canEdit: !!canEdit };
+    if (canEdit) {
+      updateData.pack = 'pack_2';
+      updateData.packPrice = 120;
+    }
+    const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
     res.json(user);
   } catch (error) {

@@ -86,13 +86,17 @@ export default function EditSpotModal({
             <h3><span className="step-num">1</span> Informations Générales</h3>
             <div className="host-grid">
               <div className="bb-col">
-                <label>NOM DU SPOT *</label>
+                <label>NOM DU SPOT (🔒 Certifié & Fixe)</label>
                 <input
                   type="text"
                   required
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  readOnly
+                  disabled
+                  title="Le nom de l'espace est certifié et ne peut pas être modifié."
+                  style={{ opacity: 0.75, cursor: 'not-allowed', background: 'rgba(255, 255, 255, 0.05)' }}
                 />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🔒 Le nom de votre espace a été fixé lors de votre inscription et reste immuable.</span>
               </div>
               <div className="bb-col">
                 <label>ADRESSE COMPLÈTE *</label>

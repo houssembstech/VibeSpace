@@ -40,16 +40,32 @@ export default function MySpotsModal({
           </button>
         </div>
 
-        {/* Edit Permission Status Banner */}
+        {/* Edit Permission & Pack Status Banner */}
         <div className={`permission-banner ${canEdit ? 'granted' : 'locked'}`}>
           {canEdit ? (
-            <p>
-              ✨ <strong>Droit de modification actif :</strong> Vous pouvez mettre à jour les photos, coordonnées, descriptions et services de vos espaces.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>
+              <div>
+                <p style={{ margin: 0 }}>
+                  👑 <strong>Pack Flex Pro (120 DT/an) · Modifications illimitées actives</strong>
+                </p>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                  Vous pouvez mettre à jour photos, tarifs, équipements, capacités et descriptions à tout moment. (Le nom de l'espace reste fixe et certifié 🔒).
+                </p>
+              </div>
+              <span className="my-spot-badge approved" style={{ alignSelf: 'flex-start' }}>👑 Pack Pro (120 DT)</span>
+            </div>
           ) : (
-            <p>
-              🔒 <strong>Modification en attente :</strong> L'administrateur n'a pas encore validé vos droits d'édition. Contactez l'admin (<strong>houssembs.tech@gmail.com</strong>) pour activer la modification de vos fiches.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>
+              <div>
+                <p style={{ margin: 0 }}>
+                  📦 <strong>Pack 01 Visibilité Directe (70 DT/an) · Fiche Fixe</strong>
+                </p>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
+                  Votre espace est en ligne et reçoit 100% des réservations sans intermédiaire. La modification des fiches est réservée au <strong>Pack Flex Pro (120 DT/an)</strong>.
+                </p>
+              </div>
+              <span className="my-spot-badge pending" style={{ alignSelf: 'flex-start' }}>📦 Pack 01 (70 DT)</span>
+            </div>
           )}
         </div>
 
@@ -102,8 +118,8 @@ export default function MySpotsModal({
                           ✏️ Modifier mon espace
                         </button>
                       ) : (
-                        <button className="btn-edit-spot-action disabled" disabled title="Modification verrouillée par l'administrateur">
-                          🔒 Modification bloquée
+                        <button className="btn-edit-spot-action disabled" disabled title="Les modifications sont réservées aux membres Pack Flex Pro (120 DT/an). Contactez l'admin pour activer l'option.">
+                          🔒 Modification (Pack Pro 120 DT)
                         </button>
                       )}
                       {canEdit && onDeleteSpot && (

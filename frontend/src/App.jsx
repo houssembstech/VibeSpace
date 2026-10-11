@@ -1267,8 +1267,19 @@ function App() {
                   <h3><span className="step-num">1</span> L'Identité du Spot</h3>
                   <div className="host-grid">
                     <div className="bb-col">
-                      <label>NOM DU SPOT</label>
-                      <input type="text" name="title" placeholder="Ex: Sunset Rooftop..." defaultValue={currentUser?.spaceName || ''} required />
+                      <label>NOM DU SPOT {currentUser?.spaceName ? '(🔒 Certifié & Fixé)' : '*'}</label>
+                      <input 
+                        type="text" 
+                        name="title" 
+                        placeholder="Ex: Sunset Rooftop..." 
+                        defaultValue={currentUser?.spaceName || ''} 
+                        readOnly={!!currentUser?.spaceName && currentUser.role !== 'admin'}
+                        style={currentUser?.spaceName && currentUser.role !== 'admin' ? { opacity: 0.8, cursor: 'not-allowed', background: 'rgba(255,255,255,0.05)' } : {}}
+                        required 
+                      />
+                      {currentUser?.spaceName && currentUser.role !== 'admin' && (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>🔒 Nom fixé lors de votre inscription et certifié</span>
+                      )}
                     </div>
                     <div className="bb-col">
                       <label>ADRESSE COMPLÈTE</label>

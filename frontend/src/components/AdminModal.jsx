@@ -218,6 +218,7 @@ export default function AdminModal({
                     <th>Utilisateur</th>
                     <th>Téléphone</th>
                     <th>Rôle</th>
+                    <th>Formule / Pack</th>
                     <th>Droit de modification</th>
                     <th>Action</th>
                   </tr>
@@ -227,6 +228,7 @@ export default function AdminModal({
                     const userId = u._id || u.id;
                     const isAdmin = u.role === 'admin';
                     const canEdit = u.canEdit || isAdmin;
+                    const isPack2 = u.pack === 'pack_2' || (u.packPrice === 120);
 
                     return (
                       <tr key={userId}>
@@ -242,6 +244,15 @@ export default function AdminModal({
                           <span className={`role-badge ${u.role}`}>
                             {isAdmin ? '🛡️ Admin' : '🏢 Responsable'}
                           </span>
+                        </td>
+                        <td>
+                          {isAdmin ? (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>👑 Admin</span>
+                          ) : (
+                            <span className={`my-spot-badge ${isPack2 ? 'approved' : 'pending'}`} style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}>
+                              {isPack2 ? '👑 Pack Pro (120 DT)' : '📦 Pack 01 (70 DT)'}
+                            </span>
+                          )}
                         </td>
                         <td>
                           <span className={`edit-access-badge ${canEdit ? 'allowed' : 'locked'}`}>

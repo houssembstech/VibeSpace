@@ -32,6 +32,15 @@ const userSchema = new mongoose.Schema({
   canEdit: {
     type: Boolean,
     default: false
+  },
+  pack: {
+    type: String,
+    enum: ['pack_1', 'pack_2'],
+    default: 'pack_1'
+  },
+  packPrice: {
+    type: Number,
+    default: 70
   }
 }, {
   timestamps: true
