@@ -42,7 +42,8 @@ const INITIAL_SPOTS = [
     idealFor: ['Jouer', 'Se retrouver', 'Se détendre'],
     status: 'approved',
     hostEmail: 'houssembs.tech@gmail.com',
-    hostPhone: '+216 20 000 000'
+    hostPhone: '+216 20 000 000',
+    hostWhatsapp: '+216 20 000 000'
   },
   {
     id: 2,
@@ -59,7 +60,8 @@ const INITIAL_SPOTS = [
     idealFor: ['Célébrer', 'Se retrouver', 'Jouer', 'Se détendre', 'Shooting', 'Étudier', 'Travailler'],
     status: 'approved',
     hostEmail: 'sami.resp@vibespace.tn',
-    hostPhone: '+216 98 123 456'
+    hostPhone: '+216 98 123 456',
+    hostWhatsapp: '+216 98 123 456'
   },
   {
     id: 3,
@@ -76,7 +78,8 @@ const INITIAL_SPOTS = [
     idealFor: ['Se détendre', 'Se retrouver', 'Célébrer'],
     status: 'approved',
     hostEmail: 'nour.k@vibespace.tn',
-    hostPhone: '+216 55 987 654'
+    hostPhone: '+216 55 987 654',
+    hostWhatsapp: '+216 55 987 654'
   },
   {
     id: 4,
@@ -93,7 +96,8 @@ const INITIAL_SPOTS = [
     idealFor: ['Regarder', 'Se détendre', 'Se retrouver'],
     status: 'approved',
     hostEmail: 'houssembs.tech@gmail.com',
-    hostPhone: '+216 20 000 000'
+    hostPhone: '+216 20 000 000',
+    hostWhatsapp: '+216 20 000 000'
   }
 ];
 
@@ -463,6 +467,116 @@ function App() {
   const activeSpotAddons = selectedSpot?.addons || ADDONS_LIST;
   const addonsCost = activeSpotAddons.reduce((total, addon) => total + ((addons[addon.id] || 0) * addon.price), 0);
   const finalTotal = spotBaseCost + extraGuestsCost + animalsCostTemp + addonsCost;
+
+  const getCleanWhatsapp = (rawPhone) => {
+    if (!rawPhone) return '';
+    let digits = String(rawPhone).replace(/[^0-9]/g, '');
+    if (digits.length === 8) {
+      digits = '216' + digits;
+    }
+    return digits;
+  };
+
+  const getBookingRecapContent = (isEmail = false) => {
+    if (!selectedSpot) return '';
+
+    let slotDetails = '';
+    if (bookingMode === 'hour') {
+      slotDetails = `🕒 Horaires : ${startTime} – ${endTime} (${durationHours}h)`;
+    } else if (bookingMode === 'halfday') {
+      slotDetails = `🕒 Formule : Demi-journée (${halfDaySlot})`;
+    } else if (bookingMode === 'day') {
+      slotDetails = `📅 Séjour : ${bookingDays} jour${bookingDays > 1 ? 's' : ''}`;
+    }
+
+    const chosenAddons = (selectedSpot.addons || ADDONS_LIST)
+      .filter(a => (addons[a.id] || 0) > 0)
+      .map(a => `  • ${a.name} (x${addons[a.id]}) : ${addons[a.id] * a.price} DT`);
+
+    if (isEmail) {
+      let body = `Bonjour,\n\nJe souhaite effectuer une réservation pour votre espace "${selectedSpot.title}" via VibeSpace.\n\n`;
+      body += `📋 RÉCAPITULATIF DE LA DEMANDE DE RÉSERVATION :\n`;
+      body += `--------------------------------------------------\n`;
+      body += `📍 Espace : ${selectedSpot.title}\n`;
+      body += `📌 Adresse : ${selectedSpot.location}\n`;
+      body += `📅 Date : ${date}\n`;
+      body += `${slotDetails}\n`;
+      body += `👥 Participants : ${totalPeople} personne(s) (${adults} adulte(s)${kids > 0 ? `, ${kids} enfant(s)` : ''})\n`;
+      body += `   • Pack inclus : ${packCapacity} pers.\n`;
+      if (extraCount > 0) {
+        body += `   • Invités supplémentaires : ${extraCount} pers. (+${extraGuestsCost} DT)\n`;
+      }
+      if (dogs > 0) {
+        body += `🐾 Animaux : ${dogs} (+${animalsCostTemp} DT)\n`;
+      }
+      if (chosenAddons.length > 0) {
+        body += `\n🎁 Options supplémentaires sélectionnées :\n${chosenAddons.join('\n')}\n`;
+      }
+      body += `\n💰 DÉTAIL DU TARIF :\n`;
+      body += `  • Tarif de base (${baseUnitLabel}) : ${spotBaseCost} DT\n`;
+      if (extraCount > 0 && extraGuestsCost > 0) {
+        body += `  • Invités suppl. (${extraCount} × ${extraPricePerGuest} DT) : ${extraGuestsCost} DT\n`;
+      }
+      if (animalsCostTemp > 0) {
+        body += `  • Animaux (${dogs} × ${animalFee} DT) : ${animalsCostTemp} DT\n`;
+      }
+      if (addonsCost > 0) {
+        body += `  • Options choisies : ${addonsCost} DT\n`;
+      }
+      body += `--------------------------------------------------\n`;
+      body += `💎 TOTAL ESTIMÉ : ${finalTotal} DT\n`;
+      body += `(Règlement sur place à l'arrivée en espèces)\n`;
+      body += `--------------------------------------------------\n\n`;
+      body += `Merci de bien vouloir me confirmer la disponibilité.\n\nCordialement,\nRéservation effectuée sur VibeSpace.`;
+      return body;
+    } else {
+      let msg = `✨ *RÉCAPITULATIF DE RÉSERVATION - VibeSpace* ✨\n\n`;
+      msg += `Bonjour ! Je souhaite réserver votre espace *${selectedSpot.title}* :\n\n`;
+      msg += `📍 *Lieu :* ${selectedSpot.location}\n`;
+      msg += `📅 *Date :* ${date}\n`;
+      msg += `${slotDetails}\n`;
+      msg += `👥 *Participants :* ${totalPeople} pers. (${adults} adulte(s)${kids > 0 ? `, ${kids} enfant(s)` : ''})\n`;
+      if (extraCount > 0) {
+        msg += `   ↳ _Pack : ${packCapacity} inclus + ${extraCount} suppl. (+${extraGuestsCost} DT)_\n`;
+      } else {
+        msg += `   ↳ _Inclus dans le pack (${packCapacity} pers.)_\n`;
+      }
+      if (dogs > 0) {
+        msg += `🐾 *Animaux :* ${dogs} (+${animalsCostTemp} DT)\n`;
+      }
+      if (chosenAddons.length > 0) {
+        msg += `\n🎁 *Options choisies :*\n${chosenAddons.join('\n')}\n`;
+      }
+      msg += `\n💵 *DÉTAIL DU PRIX :*\n`;
+      msg += `• Base (${baseUnitLabel}) : *${spotBaseCost} DT*\n`;
+      if (extraCount > 0 && extraGuestsCost > 0) {
+        msg += `• Invités suppl. : *+${extraGuestsCost} DT*\n`;
+      }
+      if (animalsCostTemp > 0) {
+        msg += `• Animaux : *+${animalsCostTemp} DT*\n`;
+      }
+      if (addonsCost > 0) {
+        msg += `• Options : *+${addonsCost} DT*\n`;
+      }
+      msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+      msg += `🔥 *TOTAL : ${finalTotal} DT*\n`;
+      msg += `_(Règlement sur place à l'arrivée)_\n`;
+      msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+      msg += `Merci de me confirmer la réservation ! 🙌`;
+      return msg;
+    }
+  };
+
+  const targetHostEmail = selectedSpot?.hostEmail || 'houssembs.tech@gmail.com';
+  const targetHostWhatsapp = selectedSpot?.hostWhatsapp || selectedSpot?.hostPhone || '+216 20 000 000';
+  const cleanWhatsappDigits = getCleanWhatsapp(targetHostWhatsapp);
+
+  const whatsappReservationUrl = cleanWhatsappDigits
+    ? `https://wa.me/${cleanWhatsappDigits}?text=${encodeURIComponent(getBookingRecapContent(false))}`
+    : `https://wa.me/?text=${encodeURIComponent(getBookingRecapContent(false))}`;
+
+  const emailSubject = `Demande de réservation VibeSpace - ${selectedSpot?.title || 'Espace'} (${date})`;
+  const emailReservationUrl = `mailto:${targetHostEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(getBookingRecapContent(true))}`;
 
   const filteredSpots = spotsList.filter(spot => {
     // Only approved spots on public explore page (or legacy mock spots without status)
@@ -943,37 +1057,53 @@ function App() {
               </div>
 
               {/* Host Contact Details */}
-              {(selectedSpot.hostEmail || selectedSpot.hostPhone || selectedSpot.hostWhatsapp) && (
-                <div className="host-contact-card">
-                  <div className="hc-header">
-                    <img src="https://ui-avatars.com/api/?name=Host&background=8b5cf6&color=fff" alt="Host Avatar" />
-                    <div>
-                      <h3>Réserver via l'Hôte</h3>
-                      <p>Contactez le propriétaire pour confirmer cette demande :</p>
-                    </div>
-                  </div>
-                  <div className="hc-channels">
-                    {selectedSpot.hostPhone && (
-                      <a href={`tel:${selectedSpot.hostPhone}`} className="hc-btn phone">
-                        📞 {selectedSpot.hostPhone}
-                      </a>
-                    )}
-                    {selectedSpot.hostWhatsapp && (
-                      <a href={`https://wa.me/${selectedSpot.hostWhatsapp}`} target="_blank" rel="noreferrer" className="hc-btn whatsapp">
-                        💬 WhatsApp
-                      </a>
-                    )}
-                    {selectedSpot.hostEmail && (
-                      <a href={`mailto:${selectedSpot.hostEmail}`} className="hc-btn email">
-                        ✉️ Email
-                      </a>
-                    )}
+              <div className="host-contact-card">
+                <div className="hc-header">
+                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(selectedSpot.title || 'Host')}&background=8b5cf6&color=fff`} alt="Host Avatar" />
+                  <div>
+                    <h3>Transmettre la réservation</h3>
+                    <p>Envoyez le récapitulatif directement au responsable de l'espace :</p>
                   </div>
                 </div>
-              )}
+                <div className="hc-channels">
+                  <a 
+                    href={whatsappReservationUrl} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="hc-btn whatsapp"
+                    title="Envoyer le récapitulatif complet sur WhatsApp"
+                  >
+                    💬 Envoyer sur WhatsApp
+                  </a>
+                  <a 
+                    href={emailReservationUrl} 
+                    className="hc-btn email"
+                    title="Envoyer le récapitulatif complet par Email"
+                  >
+                    ✉️ Envoyer par Email
+                  </a>
+                  {selectedSpot.hostPhone && (
+                    <a href={`tel:${selectedSpot.hostPhone}`} className="hc-btn phone" title="Appeler l'hôte">
+                      📞 {selectedSpot.hostPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
 
               <br />
-              <button className="btn-reserve-large full-width">Confirmer ma demande</button>
+              <button 
+                type="button" 
+                className="btn-reserve-large full-width"
+                onClick={() => {
+                  if (cleanWhatsappDigits) {
+                    window.open(whatsappReservationUrl, '_blank');
+                  } else {
+                    window.location.href = emailReservationUrl;
+                  }
+                }}
+              >
+                Confirmer ma demande & Envoyer le récapitulatif 🚀
+              </button>
               <p className="warning-text">Aucun paiement en ligne — le paiement s'effectue sur place à l'arrivée.</p>
 
               <div className="rules-section">
