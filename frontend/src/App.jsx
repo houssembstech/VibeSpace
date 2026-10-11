@@ -177,7 +177,10 @@ function App() {
     <>
       {/* Background glow and Navigation ... */}
       <nav className="navbar">
-        <div className="logo">VibeSpace.</div>
+        <div className="brand-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <img src="/logo-icon.png" alt="VibeSpace Logo" className="navbar-logo-img" />
+          <span className="logo-text">Vibe<span className="text-gradient">Space</span></span>
+        </div>
         <div className="nav-right">
           <button className="btn-host" onClick={() => setShowHostModal(true)}>Ajouter ton spot ⚡</button>
           <div className="profile-pic">

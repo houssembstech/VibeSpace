@@ -81,10 +81,32 @@ body {
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--glass-border);
 }
-.logo {
-  font-size: 1.5rem;
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+.brand-logo:hover {
+  opacity: 0.95;
+}
+.navbar-logo-img {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 14px rgba(139, 92, 246, 0.45));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.brand-logo:hover .navbar-logo-img {
+  transform: scale(1.08) rotate(-2deg);
+}
+.logo-text {
+  font-size: 1.55rem;
   font-weight: 800;
-  letter-spacing: -1px;
+  letter-spacing: -0.8px;
+  color: var(--text-main);
 }
 .nav-right {
   display: flex;
