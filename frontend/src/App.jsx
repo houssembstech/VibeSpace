@@ -452,13 +452,13 @@ function App() {
   const extraPricePerGuest = Number(selectedSpot?.extraGuestPrice || 0);
   let extraGuestsCost = 0;
   if (selectedSpot && extraCount > 0 && extraPricePerGuest > 0) {
-    const guestFactor = bookingMode === 'day' ? bookingDays : (bookingMode === 'halfday' ? 2 : durationHours);
+    const guestFactor = bookingMode === 'day' ? bookingDays : 1;
     extraGuestsCost = extraCount * extraPricePerGuest * guestFactor;
   }
 
-  const animalCostPerHr = selectedSpot?.animalFee !== undefined ? selectedSpot.animalFee : 13;
-  const animalFactor = bookingMode === 'day' ? bookingDays : (bookingMode === 'halfday' ? 2 : durationHours);
-  const animalsCostTemp = dogs * animalCostPerHr * animalFactor;
+  const animalFee = selectedSpot?.animalFee !== undefined ? selectedSpot.animalFee : 13;
+  const animalFactor = bookingMode === 'day' ? bookingDays : 1;
+  const animalsCostTemp = dogs * animalFee * animalFactor;
 
   const activeSpotAddons = selectedSpot?.addons || ADDONS_LIST;
   const addonsCost = activeSpotAddons.reduce((total, addon) => total + ((addons[addon.id] || 0) * addon.price), 0);
@@ -916,13 +916,13 @@ function App() {
                 </div>
                 {extraCount > 0 && extraGuestsCost > 0 && (
                   <div className="recap-row">
-                    <span>Invités suppl. ({extraCount})</span>
+                    <span>Invités suppl. ({extraCount} × {extraPricePerGuest} DT{bookingMode === 'day' && bookingDays > 1 ? ` × ${bookingDays}j` : ''})</span>
                     <span>{extraGuestsCost} DT</span>
                   </div>
                 )}
                 {animalsCostTemp > 0 && (
                   <div className="recap-row">
-                    <span>Animaux ({dogs})</span>
+                    <span>Animaux ({dogs} × {animalFee} DT{bookingMode === 'day' && bookingDays > 1 ? ` × ${bookingDays}j` : ''})</span>
                     <span>{animalsCostTemp} DT</span>
                   </div>
                 )}
