@@ -17,7 +17,10 @@ export default function EditSpotModal({
   const [pricePerHour, setPricePerHour] = useState(spot.price || spot.pricePerHour || 50);
   const [priceHalfDay, setPriceHalfDay] = useState(spot.priceHalfDay || '');
   const [priceFullDay, setPriceFullDay] = useState(spot.priceFullDay || '');
-  const [maxCapacity, setMaxCapacity] = useState(spot.capacity || spot.maxCapacity || 10);
+  const [includedGuests, setIncludedGuests] = useState(spot.includedGuests || spot.capacity || spot.maxCapacity || 10);
+  const [isUnlimitedCapacity, setIsUnlimitedCapacity] = useState(Boolean(spot.isUnlimitedCapacity));
+  const [maxCapacity, setMaxCapacity] = useState(spot.maxCapacity && spot.maxCapacity < 9000 ? spot.maxCapacity : (spot.capacity || 10));
+  const [extraGuestPrice, setExtraGuestPrice] = useState(spot.extraGuestPrice || 0);
   const [hostEmail, setHostEmail] = useState(spot.hostEmail || '');
   const [hostPhone, setHostPhone] = useState(spot.hostPhone || '');
   const [hostWhatsapp, setHostWhatsapp] = useState(spot.hostWhatsapp || '');
@@ -32,6 +35,9 @@ export default function EditSpotModal({
     e.preventDefault();
     setLoading(true);
 
+    const parsedIncludedGuests = Number(includedGuests || 10);
+    const parsedMax = isUnlimitedCapacity ? 99999 : Math.max(parsedIncludedGuests, Number(maxCapacity || parsedIncludedGuests));
+
     const updatedData = {
       ...spot,
       title,
@@ -42,8 +48,11 @@ export default function EditSpotModal({
       pricePerHour: Number(pricePerHour),
       priceHalfDay: Number(priceHalfDay || 0),
       priceFullDay: Number(priceFullDay || 0),
-      capacity: Number(maxCapacity),
-      maxCapacity: Number(maxCapacity),
+      includedGuests: parsedIncludedGuests,
+      isUnlimitedCapacity: isUnlimitedCapacity,
+      maxCapacity: parsedMax,
+      capacity: parsedMax,
+      extraGuestPrice: Number(extraGuestPrice || 0),
       hostEmail,
       hostPhone,
       hostWhatsapp,
@@ -181,15 +190,64 @@ export default function EditSpotModal({
                 />
               </div>
             </div>
+            <div className="host-grid mt-input">
+              <div className="bb-col">
+                <label>CAPACITÉ DU PACK (PERSONNES INCLUSES) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={includedGuests}
+                  onChange={(e) => setIncludedGuests(e.target.value)}
+                />
+                <span className="sub-hint" style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>
+                  Invités inclus dans le tarif de base (sans aucun supplément)
+                </span>
+              </div>
+
+              <div className="bb-col">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>CAPACITÉ MAX DE L'ESPACE *</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--accent-1)' }}>
+                    <input
+                      type="checkbox"
+                      checked={isUnlimitedCapacity}
+                      onChange={(e) => setIsUnlimitedCapacity(e.target.checked)}
+                    />
+                    <span>♾️ Illimitée</span>
+                  </label>
+                </div>
+                <input
+                  type="number"
+                  disabled={isUnlimitedCapacity}
+                  required={!isUnlimitedCapacity}
+                  min={includedGuests || 1}
+                  value={isUnlimitedCapacity ? '' : maxCapacity}
+                  placeholder={isUnlimitedCapacity ? '♾️ Capacité illimitée' : 'Ex: 30'}
+                  onChange={(e) => setMaxCapacity(e.target.value)}
+                  style={{ opacity: isUnlimitedCapacity ? 0.6 : 1 }}
+                />
+                <span className="sub-hint" style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>
+                  {isUnlimitedCapacity ? 'Aucune limite maximale de personnes' : 'Limite absolue (doit être ≥ capacité du pack)'}
+                </span>
+              </div>
+            </div>
+
             <div className="bb-col mt-input">
-              <label>CAPACITÉ MAX (PERSONNES) *</label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={maxCapacity}
-                onChange={(e) => setMaxCapacity(e.target.value)}
-              />
+              <label>FRAIS PAR INVITÉ SUPPLÉMENTAIRE (AU-DELÀ DU PACK)</label>
+              <div className="val-input-wrapper" style={{ maxWidth: '280px' }}>
+                <input
+                  type="number"
+                  min="0"
+                  value={extraGuestPrice}
+                  onChange={(e) => setExtraGuestPrice(e.target.value)}
+                  placeholder="0"
+                />
+                <span className="val-unit">DT / invité</span>
+              </div>
+              <span className="sub-hint" style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>
+                Supplément facturé uniquement si le nombre de personnes dépasse le pack
+              </span>
             </div>
           </div>
 

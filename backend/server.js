@@ -88,13 +88,17 @@ app.get('/api/spots', async (req, res) => {
 // POST new Spot with Cloudinary Image Upload
 app.post('/api/spots', upload.array('images', 5), async (req, res) => {
   try {
-    const { title, description, category, location, pricePerHour, priceHalfDay, priceFullDay, maxCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee, hostEmail, hostPhone, hostWhatsapp, hostUserId } = req.body;
+    const { title, description, category, location, pricePerHour, priceHalfDay, priceFullDay, maxCapacity, isUnlimitedCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee, hostEmail, hostPhone, hostWhatsapp, hostUserId } = req.body;
     
     const images = req.files ? req.files.map(file => file.path) : [];
     const imageUrl = images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1542751371-adc38448a05e';
 
     // Auto-approve if created by admin, otherwise pending
     const status = (hostEmail && hostEmail.toLowerCase() === 'houssembs.tech@gmail.com') ? 'approved' : 'pending';
+
+    const isUnlimited = isUnlimitedCapacity === 'true' || isUnlimitedCapacity === true;
+    const packCap = Number(includedGuests || maxCapacity || 10);
+    const parsedMaxCap = isUnlimited ? 99999 : Math.max(packCap, Number(maxCapacity || packCap));
 
     const newSpot = new Spot({
       title,
@@ -104,8 +108,9 @@ app.post('/api/spots', upload.array('images', 5), async (req, res) => {
       pricePerHour: Number(pricePerHour || 0),
       priceHalfDay: Number(priceHalfDay || 0),
       priceFullDay: Number(priceFullDay || 0),
-      maxCapacity: Number(maxCapacity),
-      includedGuests: Number(includedGuests || 1),
+      maxCapacity: parsedMaxCap,
+      isUnlimitedCapacity: isUnlimited,
+      includedGuests: packCap,
       extraGuestPrice: Number(extraGuestPrice || 0),
       animalFee: Number(animalFee || 13),
       idealFor: idealFor ? (typeof idealFor === 'string' ? JSON.parse(idealFor) : idealFor) : [],
@@ -146,7 +151,7 @@ app.put('/api/spots/:id', upload.array('images', 5), async (req, res) => {
     const spot = await Spot.findById(req.params.id);
     if (!spot) return res.status(404).json({ message: 'Spot introuvable' });
 
-    const { title, description, category, location, pricePerHour, priceHalfDay, priceFullDay, maxCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee, hostEmail, hostPhone, hostWhatsapp } = req.body;
+    const { title, description, category, location, pricePerHour, priceHalfDay, priceFullDay, maxCapacity, isUnlimitedCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee, hostEmail, hostPhone, hostWhatsapp } = req.body;
 
     if (title) spot.title = title;
     if (description) spot.description = description;
@@ -155,8 +160,13 @@ app.put('/api/spots/:id', upload.array('images', 5), async (req, res) => {
     if (pricePerHour !== undefined) spot.pricePerHour = Number(pricePerHour);
     if (priceHalfDay !== undefined) spot.priceHalfDay = Number(priceHalfDay);
     if (priceFullDay !== undefined) spot.priceFullDay = Number(priceFullDay);
-    if (maxCapacity !== undefined) spot.maxCapacity = Number(maxCapacity);
+    if (isUnlimitedCapacity !== undefined) {
+      spot.isUnlimitedCapacity = isUnlimitedCapacity === 'true' || isUnlimitedCapacity === true;
+    }
     if (includedGuests !== undefined) spot.includedGuests = Number(includedGuests);
+    if (maxCapacity !== undefined) {
+      spot.maxCapacity = spot.isUnlimitedCapacity ? 99999 : Math.max(spot.includedGuests || 1, Number(maxCapacity));
+    }
     if (extraGuestPrice !== undefined) spot.extraGuestPrice = Number(extraGuestPrice);
     if (animalFee !== undefined) spot.animalFee = Number(animalFee);
     if (hostEmail) spot.hostEmail = hostEmail;

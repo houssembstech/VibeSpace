@@ -32,14 +32,21 @@ const spotSchema = new mongoose.Schema({
   },
   maxCapacity: {
     type: Number,
-    required: true
+    default: 10
+  },
+  isUnlimitedCapacity: {
+    type: Boolean,
+    default: false
+  },
+  includedGuests: {
+    type: Number,
+    default: 10
   },
   imageUrl: {
     type: String,
     required: false
   },
   images: [{ type: String }],
-  includedGuests: { type: Number, default: 1 },
   extraGuestPrice: { type: Number, default: 0 },
   idealFor: [{ type: String }],
   addons: [{

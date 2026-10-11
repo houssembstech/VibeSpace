@@ -34,8 +34,8 @@ const INITIAL_SPOTS = [
     img: 'https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=800&q=80',
     location: 'Tunis, Lac 2',
     capacity: 8,
-    includedGuests: 4,
-    extraGuestPrice: 5,
+    includedGuests: 8,
+    extraGuestPrice: 0,
     price: 45,
     rating: 4.9,
     description: "L'espace parfait pour vos gaming sessions & potes. Cet espace est entièrement privé et sans vis-à-vis.",
@@ -51,8 +51,8 @@ const INITIAL_SPOTS = [
     img: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=800&q=80',
     location: 'Sidi Bou Saïd',
     capacity: 15,
-    includedGuests: 7,
-    extraGuestPrice: 7,
+    includedGuests: 15,
+    extraGuestPrice: 0,
     price: 69,
     rating: 4.8,
     description: "Cet espace est entièrement privé et sans vis-à-vis. L'espace parfait pour vos dates & shootings.",
@@ -68,8 +68,8 @@ const INITIAL_SPOTS = [
     img: 'https://images.unsplash.com/photo-1504280650220-41315b493774?auto=format&fit=crop&w=800&q=80',
     location: 'Zaghouan',
     capacity: 12,
-    includedGuests: 6,
-    extraGuestPrice: 10,
+    includedGuests: 12,
+    extraGuestPrice: 0,
     price: 25,
     rating: 5.0,
     description: "Spot de camping isolé et privé. Cet espace est entièrement privé et sans vis-à-vis.",
@@ -85,8 +85,8 @@ const INITIAL_SPOTS = [
     img: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?auto=format&fit=crop&w=800&q=80',
     location: "L'Aouina",
     capacity: 6,
-    includedGuests: 4,
-    extraGuestPrice: 6,
+    includedGuests: 6,
+    extraGuestPrice: 0,
     price: 30,
     rating: 4.7,
     description: "Home cinéma entièrement privatisé. Cet espace est entièrement privé et sans vis-à-vis.",
@@ -212,18 +212,28 @@ function App() {
           const deleted = getDeletedSpotIds();
           const dbSpots = data
             .filter(s => !deleted.includes(s._id) && !deleted.includes(s.id) && !deleted.includes(String(s._id)))
-            .map(s => ({
-              ...s,
-              id: s._id,
-              price: s.pricePerHour,
-              pricePerHour: s.pricePerHour,
-              priceHalfDay: s.priceHalfDay || 0,
-              priceFullDay: s.priceFullDay || 0,
-              capacity: s.maxCapacity || s.capacity || 10,
-              maxCapacity: s.maxCapacity || s.capacity || 10,
-              status: s.status || 'approved',
-              img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
-            }));
+            .map(s => {
+              const isUnlim = Boolean(s.isUnlimitedCapacity);
+              const incGuests = (s.includedGuests !== undefined && s.includedGuests !== null && Number(s.includedGuests) > 0)
+                ? Number(s.includedGuests)
+                : (s.maxCapacity && s.maxCapacity < 9000 ? Number(s.maxCapacity) : (Number(s.capacity) || 10));
+              const maxCapVal = isUnlim ? 99999 : (s.maxCapacity && s.maxCapacity < 9000 ? Number(s.maxCapacity) : incGuests);
+              return {
+                ...s,
+                id: s._id,
+                price: s.pricePerHour,
+                pricePerHour: s.pricePerHour,
+                priceHalfDay: s.priceHalfDay || 0,
+                priceFullDay: s.priceFullDay || 0,
+                capacity: maxCapVal,
+                maxCapacity: maxCapVal,
+                isUnlimitedCapacity: isUnlim,
+                includedGuests: incGuests,
+                extraGuestPrice: Number(s.extraGuestPrice || 0),
+                status: s.status || 'approved',
+                img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
+              };
+            });
 
           if (dbSpots.length > 0) {
             setSpotsList(dbSpots);
@@ -340,7 +350,10 @@ function App() {
     formData.append('pricePerHour', updatedData.pricePerHour);
     formData.append('priceHalfDay', updatedData.priceHalfDay || 0);
     formData.append('priceFullDay', updatedData.priceFullDay || 0);
+    formData.append('includedGuests', updatedData.includedGuests || 10);
+    formData.append('isUnlimitedCapacity', Boolean(updatedData.isUnlimitedCapacity));
     formData.append('maxCapacity', updatedData.maxCapacity);
+    formData.append('extraGuestPrice', updatedData.extraGuestPrice || 0);
     formData.append('hostEmail', updatedData.hostEmail);
     formData.append('hostPhone', updatedData.hostPhone);
     formData.append('hostWhatsapp', updatedData.hostWhatsapp || '');
@@ -364,8 +377,11 @@ function App() {
         pricePerHour: data.pricePerHour,
         priceHalfDay: data.priceHalfDay || updatedData.priceHalfDay || 0,
         priceFullDay: data.priceFullDay || updatedData.priceFullDay || 0,
-        capacity: data.maxCapacity,
-        maxCapacity: data.maxCapacity,
+        includedGuests: data.includedGuests || updatedData.includedGuests,
+        isUnlimitedCapacity: data.isUnlimitedCapacity !== undefined ? data.isUnlimitedCapacity : updatedData.isUnlimitedCapacity,
+        capacity: data.maxCapacity || updatedData.maxCapacity,
+        maxCapacity: data.maxCapacity || updatedData.maxCapacity,
+        extraGuestPrice: data.extraGuestPrice !== undefined ? data.extraGuestPrice : updatedData.extraGuestPrice,
         img: data.images && data.images.length > 0 ? data.images[0] : (data.imageUrl || updatedData.img)
       };
       setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? savedSpot : s));
@@ -398,8 +414,21 @@ function App() {
     durationHours = Math.max(1, diff);
   }
 
-  const maxCap = selectedSpot ? (selectedSpot.capacity || selectedSpot.maxCapacity || 10) : 10;
   const totalPeople = adults + kids;
+  const isUnlimited = Boolean(selectedSpot?.isUnlimitedCapacity);
+  const packCapacity = selectedSpot ? (
+    selectedSpot.includedGuests !== undefined && selectedSpot.includedGuests !== null && Number(selectedSpot.includedGuests) > 0
+      ? Number(selectedSpot.includedGuests)
+      : (selectedSpot.maxCapacity && selectedSpot.maxCapacity < 9000 ? Number(selectedSpot.maxCapacity) : (Number(selectedSpot.capacity) || 10))
+  ) : 10;
+
+  const maxCap = isUnlimited ? 99999 : (
+    selectedSpot ? (
+      selectedSpot.maxCapacity && selectedSpot.maxCapacity < 9000
+        ? Number(selectedSpot.maxCapacity)
+        : Math.max(packCapacity, Number(selectedSpot.capacity) || packCapacity)
+    ) : 10
+  );
 
   const hourlyRate = selectedSpot ? (selectedSpot.pricePerHour || selectedSpot.price || 0) : 0;
   const halfDayRate = selectedSpot ? (selectedSpot.priceHalfDay > 0 ? selectedSpot.priceHalfDay : Math.round(hourlyRate * 4 * 0.85)) : 0;
@@ -419,11 +448,12 @@ function App() {
     baseUnitLabel = `${bookingDays} jour(s) × ${fullDayRate} DT`;
   }
 
-  const includedGuests = selectedSpot ? (selectedSpot.includedGuests || Math.floor(maxCap / 2) || 1) : 1;
+  const extraCount = Math.max(0, totalPeople - packCapacity);
+  const extraPricePerGuest = Number(selectedSpot?.extraGuestPrice || 0);
   let extraGuestsCost = 0;
-  if (selectedSpot && totalPeople > includedGuests) {
+  if (selectedSpot && extraCount > 0 && extraPricePerGuest > 0) {
     const guestFactor = bookingMode === 'day' ? bookingDays : (bookingMode === 'halfday' ? 2 : durationHours);
-    extraGuestsCost = (totalPeople - includedGuests) * (selectedSpot.extraGuestPrice || 0) * guestFactor;
+    extraGuestsCost = extraCount * extraPricePerGuest * guestFactor;
   }
 
   const animalCostPerHr = selectedSpot?.animalFee !== undefined ? selectedSpot.animalFee : 13;
@@ -576,7 +606,16 @@ function App() {
               </div>
               <p className="spot-location">📍 {spot.location}</p>
               <div className="spot-details">
-                <span className="spot-capacity">👥 Jusqu'à {spot.capacity || spot.maxCapacity} pers.</span>
+                <span className="spot-capacity">
+                  👥 Pack: <strong>{spot.includedGuests || spot.capacity} pers.</strong>
+                  {spot.isUnlimitedCapacity ? (
+                    <span style={{ color: 'var(--accent-1)', marginLeft: '4px' }}>· Max: ♾️ Illimité</span>
+                  ) : (
+                    spot.maxCapacity && spot.maxCapacity !== (spot.includedGuests || spot.capacity) && spot.maxCapacity < 9000 ? (
+                      <span style={{ opacity: 0.85, marginLeft: '4px' }}>· Max: {spot.maxCapacity} pers.</span>
+                    ) : null
+                  )}
+                </span>
                 <span className="spot-price">
                   <strong className="price-gradient">{spot.price || spot.pricePerHour} DT</strong>/h
                   {spot.priceHalfDay > 0 && <span className="price-badge-extra"> · {spot.priceHalfDay} DT/½j</span>}
@@ -640,7 +679,12 @@ function App() {
                     {selectedSpot.priceFullDay > 0 && <span>📅 <strong>{selectedSpot.priceFullDay} DT</strong> Journée entière</span>}
                   </div>
                 </div>
-                <span className="b-spots-remaining">👥 Jusqu'à {maxCap} personnes max</span>
+                <div className="b-spots-remaining-container">
+                  <span className="b-spots-remaining">👥 Pack : <strong>{packCapacity} pers. incluses</strong></span>
+                  <span className="b-spots-remaining-sub" style={{ fontSize: '0.8rem', display: 'block', opacity: 0.85, color: 'var(--accent-1)' }}>
+                    {isUnlimited ? 'Capacité totale : ♾️ Illimitée' : `Capacité max : ${maxCap} personnes`}
+                  </span>
+                </div>
               </div>
 
               {/* Booking Mode Selector Tabs */}
@@ -767,12 +811,16 @@ function App() {
               <div className="guests-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3>QUI VIENT ?</h3>
-                  <span style={{ fontSize: '0.85rem', color: totalPeople >= maxCap ? '#f87171' : 'var(--text-muted)' }}>
-                    Total : {totalPeople} / {maxCap} pers.
+                  <span style={{ fontSize: '0.85rem', color: (!isUnlimited && totalPeople >= maxCap) ? '#f87171' : 'var(--text-muted)' }}>
+                    {totalPeople <= packCapacity ? (
+                      <span>👥 {totalPeople} / {packCapacity} pers. (Inclus dans le pack)</span>
+                    ) : (
+                      <span>👥 {packCapacity} inclus + <strong style={{ color: 'var(--accent-2)' }}>{extraCount} suppl.</strong> {!isUnlimited && `(Max ${maxCap})`}</span>
+                    )}
                   </span>
                 </div>
 
-                {totalPeople >= maxCap && (
+                {!isUnlimited && totalPeople >= maxCap && (
                   <div className="capacity-alert-banner">
                     ⚠️ Capacité maximale de cet espace ({maxCap} personnes) atteinte.
                   </div>
@@ -780,30 +828,40 @@ function App() {
 
                 {(!selectedSpot.allowedAudiences || selectedSpot.allowedAudiences.includes('Adultes (+18)') || selectedSpot.allowedAudiences.includes('Famille') || selectedSpot.allowedAudiences.includes('Couple')) && (
                   <div className="counter-row">
-                    <div>Adultes</div>
+                    <div>
+                      Adultes
+                      {extraPricePerGuest > 0 && totalPeople >= packCapacity && (
+                        <div className="sm-info" style={{ color: 'var(--accent-2)' }}>+{extraPricePerGuest} DT / invité suppl.</div>
+                      )}
+                    </div>
                     <div className="counter-controls">
                       <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}>-</button>
                       <span>{adults}</span>
                       <button 
                         type="button" 
-                        disabled={totalPeople >= maxCap}
-                        onClick={() => totalPeople < maxCap && setAdults(adults + 1)}
-                        style={{ opacity: totalPeople >= maxCap ? 0.35 : 1, cursor: totalPeople >= maxCap ? 'not-allowed' : 'pointer' }}
+                        disabled={!isUnlimited && totalPeople >= maxCap}
+                        onClick={() => (isUnlimited || totalPeople < maxCap) && setAdults(adults + 1)}
+                        style={{ opacity: (!isUnlimited && totalPeople >= maxCap) ? 0.35 : 1, cursor: (!isUnlimited && totalPeople >= maxCap) ? 'not-allowed' : 'pointer' }}
                       >+</button>
                     </div>
                   </div>
                 )}
                 {(!selectedSpot.allowedAudiences || selectedSpot.allowedAudiences.includes('Enfants') || selectedSpot.allowedAudiences.includes('Famille')) && (
                   <div className="counter-row">
-                    <div>Enfants</div>
+                    <div>
+                      Enfants
+                      {extraPricePerGuest > 0 && totalPeople >= packCapacity && (
+                        <div className="sm-info" style={{ color: 'var(--accent-2)' }}>+{extraPricePerGuest} DT / invité suppl.</div>
+                      )}
+                    </div>
                     <div className="counter-controls">
                       <button type="button" onClick={() => setKids(Math.max(0, kids - 1))}>-</button>
                       <span>{kids}</span>
                       <button 
                         type="button" 
-                        disabled={totalPeople >= maxCap}
-                        onClick={() => totalPeople < maxCap && setKids(kids + 1)}
-                        style={{ opacity: totalPeople >= maxCap ? 0.35 : 1, cursor: totalPeople >= maxCap ? 'not-allowed' : 'pointer' }}
+                        disabled={!isUnlimited && totalPeople >= maxCap}
+                        onClick={() => (isUnlimited || totalPeople < maxCap) && setKids(kids + 1)}
+                        style={{ opacity: (!isUnlimited && totalPeople >= maxCap) ? 0.35 : 1, cursor: (!isUnlimited && totalPeople >= maxCap) ? 'not-allowed' : 'pointer' }}
                       >+</button>
                     </div>
                   </div>
@@ -856,9 +914,9 @@ function App() {
                   <span>Base · {baseUnitLabel}</span>
                   <span>{spotBaseCost} DT</span>
                 </div>
-                {extraGuestsCost > 0 && (
+                {extraCount > 0 && extraGuestsCost > 0 && (
                   <div className="recap-row">
-                    <span>Invités suppl. ({totalPeople - includedGuests})</span>
+                    <span>Invités suppl. ({extraCount})</span>
                     <span>{extraGuestsCost} DT</span>
                   </div>
                 )}
@@ -879,7 +937,7 @@ function App() {
                   <span className="price-gradient">{finalTotal} DT</span>
                 </div>
                 <div className="recap-summary-tags">
-                  <span>👥 Capacité max : {maxCap} invités</span>
+                  <span>👥 Pack : {packCapacity} pers. {isUnlimited ? '(Espace illimité ♾️)' : `(Max ${maxCap} pers.)`}</span>
                   <span>📍 {selectedSpot.location}</span>
                 </div>
               </div>
@@ -979,8 +1037,13 @@ function App() {
                 const spotPrice = parseFloat(form.querySelector('input[name="pricePerHour"]')?.value) || 50;
                 const priceHalfDay = parseFloat(form.querySelector('input[name="priceHalfDay"]')?.value) || 0;
                 const priceFullDay = parseFloat(form.querySelector('input[name="priceFullDay"]')?.value) || 0;
-                const cap = parseInt(form.querySelector('input[name="maxCapacity"]')?.value, 10) || 10;
-                const extraGuest = parseFloat(form.querySelector('input[name="extraGuestPrice"]')?.value) || 5;
+                const isUnlimited = form.querySelector('#host-unlimited-cap')?.checked || false;
+                const packCapacity = parseInt(form.querySelector('input[name="includedGuests"]')?.value, 10) || 10;
+                let cap = isUnlimited ? 99999 : (parseInt(form.querySelector('input[name="maxCapacity"]')?.value, 10) || packCapacity);
+                if (!isUnlimited && cap < packCapacity) {
+                  cap = packCapacity;
+                }
+                const extraGuest = parseFloat(form.querySelector('input[name="extraGuestPrice"]')?.value) || 0;
                 const animalFee = parseFloat(form.querySelector('#animal-fee-input')?.value || '13');
 
                 const spotCategory = idealCats.length > 0 ? idealCats[0] : '✨ Nouveauté';
@@ -999,8 +1062,9 @@ function App() {
                 formData.append('pricePerHour', spotPrice);
                 formData.append('priceHalfDay', priceHalfDay);
                 formData.append('priceFullDay', priceFullDay);
+                formData.append('includedGuests', packCapacity);
                 formData.append('maxCapacity', cap);
-                formData.append('includedGuests', Math.floor(cap / 2) || 5);
+                formData.append('isUnlimitedCapacity', isUnlimited);
                 formData.append('extraGuestPrice', extraGuest);
                 formData.append('idealFor', JSON.stringify(spotIdealFor));
                 formData.append('addons', JSON.stringify(configuredAddons));
@@ -1039,8 +1103,11 @@ function App() {
                     pricePerHour: savedSpot.pricePerHour || spotPrice,
                     priceHalfDay: savedSpot.priceHalfDay || priceHalfDay,
                     priceFullDay: savedSpot.priceFullDay || priceFullDay,
+                    includedGuests: savedSpot.includedGuests || packCapacity,
                     capacity: savedSpot.maxCapacity || cap,
                     maxCapacity: savedSpot.maxCapacity || cap,
+                    isUnlimitedCapacity: savedSpot.isUnlimitedCapacity !== undefined ? savedSpot.isUnlimitedCapacity : isUnlimited,
+                    extraGuestPrice: savedSpot.extraGuestPrice !== undefined ? savedSpot.extraGuestPrice : extraGuest,
                     status: savedSpot.status || spotInitialStatus,
                     hostEmail: savedSpot.hostEmail || inputHostEmail,
                     hostPhone: savedSpot.hostPhone || inputHostPhone,
@@ -1158,19 +1225,56 @@ function App() {
 
                   <div className="host-grid mt-input">
                     <div className="bb-col">
-                      <label>CAPACITÉ MAX (PERSONNES) *</label>
+                      <label>CAPACITÉ DU PACK (PERSONNES INCLUSES) *</label>
                       <div className="val-input-wrapper">
-                        <input type="number" name="maxCapacity" placeholder="24" min="1" required />
+                        <input type="number" name="includedGuests" placeholder="24" min="1" required defaultValue="10" />
                         <span className="val-unit">Pers</span>
                       </div>
+                      <span className="sm-info" style={{ marginTop: '4px', display: 'block' }}>
+                        Nombre d'invités inclus sans supplément
+                      </span>
                     </div>
+
                     <div className="bb-col">
-                      <label>FRAIS SUPPLÉM. / INVITÉ</label>
-                      <div className="val-input-wrapper">
-                        <input type="number" name="extraGuestPrice" placeholder="7" min="0" />
-                        <span className="val-unit">DT/p</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label>CAPACITÉ MAX DE L'ESPACE *</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--accent-1)' }}>
+                          <input 
+                            type="checkbox" 
+                            name="isUnlimitedCapacity" 
+                            id="host-unlimited-cap"
+                            onChange={(e) => {
+                              const maxInp = document.getElementById('host-maxcap-input');
+                              if (maxInp) {
+                                maxInp.disabled = e.target.checked;
+                                maxInp.required = !e.target.checked;
+                                maxInp.placeholder = e.target.checked ? '♾️ Illimitée' : 'Ex: 30';
+                                maxInp.style.opacity = e.target.checked ? '0.5' : '1';
+                              }
+                            }}
+                          />
+                          <span>♾️ Illimitée</span>
+                        </label>
                       </div>
+                      <div className="val-input-wrapper" id="host-maxcap-wrapper">
+                        <input type="number" name="maxCapacity" id="host-maxcap-input" placeholder="Ex: 30" min="1" />
+                        <span className="val-unit">Pers</span>
+                      </div>
+                      <span className="sm-info" style={{ marginTop: '4px', display: 'block' }}>
+                        Limite maximale (doit être ≥ pack) ou cochez Illimitée
+                      </span>
                     </div>
+                  </div>
+
+                  <div className="bb-col mt-input">
+                    <label>FRAIS PAR INVITÉ SUPPLÉMENTAIRE (AU-DELÀ DU PACK)</label>
+                    <div className="val-input-wrapper" style={{ maxWidth: '280px' }}>
+                      <input type="number" name="extraGuestPrice" placeholder="0" min="0" defaultValue="0" />
+                      <span className="val-unit">DT / invité</span>
+                    </div>
+                    <span className="sm-info" style={{ marginTop: '4px', display: 'block' }}>
+                      Facturé uniquement si le nombre de personnes dépasse le pack (0 si aucun supplément)
+                    </span>
                   </div>
                   <div className="bb-col mt-input">
                     <label>JOURS ET HORAIRES</label>
