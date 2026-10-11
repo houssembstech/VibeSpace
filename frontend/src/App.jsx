@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import AuthModal from './components/AuthModal';
+import AdminModal from './components/AdminModal';
+import MySpotsModal from './components/MySpotsModal';
+import EditSpotModal from './components/EditSpotModal';
 
 const COURSES_CATEGORIES = ['🔥 Tout', '✨ Célébrer', '🌿 Se détendre', '📸 Shooting', '🎬 Regarder', '🎮 Jouer', '⛺ Camping'];
 
@@ -35,7 +39,10 @@ const INITIAL_SPOTS = [
     price: 45,
     rating: 4.9,
     description: "L'espace parfait pour vos gaming sessions & potes. Cet espace est entièrement privé et sans vis-à-vis.",
-    idealFor: ['Jouer', 'Se retrouver', 'Se détendre']
+    idealFor: ['Jouer', 'Se retrouver', 'Se détendre'],
+    status: 'approved',
+    hostEmail: 'houssembs.tech@gmail.com',
+    hostPhone: '+216 20 000 000'
   },
   {
     id: 2,
@@ -49,7 +56,10 @@ const INITIAL_SPOTS = [
     price: 69,
     rating: 4.8,
     description: "Cet espace est entièrement privé et sans vis-à-vis. L'espace parfait pour vos dates & shootings.",
-    idealFor: ['Célébrer', 'Se retrouver', 'Jouer', 'Se détendre', 'Shooting', 'Étudier', 'Travailler']
+    idealFor: ['Célébrer', 'Se retrouver', 'Jouer', 'Se détendre', 'Shooting', 'Étudier', 'Travailler'],
+    status: 'approved',
+    hostEmail: 'sami.resp@vibespace.tn',
+    hostPhone: '+216 98 123 456'
   },
   {
     id: 3,
@@ -63,7 +73,10 @@ const INITIAL_SPOTS = [
     price: 25,
     rating: 5.0,
     description: "Spot de camping isolé et privé. Cet espace est entièrement privé et sans vis-à-vis.",
-    idealFor: ['Se détendre', 'Se retrouver', 'Célébrer']
+    idealFor: ['Se détendre', 'Se retrouver', 'Célébrer'],
+    status: 'approved',
+    hostEmail: 'nour.k@vibespace.tn',
+    hostPhone: '+216 55 987 654'
   },
   {
     id: 4,
@@ -77,7 +90,10 @@ const INITIAL_SPOTS = [
     price: 30,
     rating: 4.7,
     description: "Home cinéma entièrement privatisé. Cet espace est entièrement privé et sans vis-à-vis.",
-    idealFor: ['Regarder', 'Se détendre', 'Se retrouver']
+    idealFor: ['Regarder', 'Se détendre', 'Se retrouver'],
+    status: 'approved',
+    hostEmail: 'houssembs.tech@gmail.com',
+    hostPhone: '+216 20 000 000'
   }
 ];
 
@@ -94,11 +110,49 @@ function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('vibespace_user');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.email && u.email.toLowerCase() === 'houssembs.tech@gmail.com') {
+          return { ...u, role: 'admin', canEdit: true };
+        }
+        return u;
+      }
+      return null;
     } catch {
       return null;
     }
   });
+
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showMySpotsModal, setShowMySpotsModal] = useState(false);
+  const [editingSpot, setEditingSpot] = useState(null);
+  const [usersList, setUsersList] = useState([
+    {
+      _id: 'u_admin',
+      name: 'Houssem (Admin)',
+      email: 'houssembs.tech@gmail.com',
+      phone: '+216 20 000 000',
+      role: 'admin',
+      canEdit: true
+    },
+    {
+      _id: 'u_sami',
+      name: 'Sami Ben Amor',
+      email: 'sami.resp@vibespace.tn',
+      phone: '+216 98 123 456',
+      role: 'responsable',
+      canEdit: true
+    },
+    {
+      _id: 'u_nour',
+      name: 'Nour Khelil',
+      email: 'nour.k@vibespace.tn',
+      phone: '+216 55 987 654',
+      role: 'responsable',
+      canEdit: false
+    }
+  ]);
+
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [authName, setAuthName] = useState('');
@@ -131,23 +185,150 @@ function App() {
     }
   }, [selectedSpot]);
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/spots`)
+  const fetchAllData = () => {
+    fetch(`${API_URL}/api/spots?all=true`)
       .then(res => res.json())
       .then(data => {
         if(data && Array.isArray(data) && data.length > 0) {
-           const dbSpots = data.map(s => ({
-              ...s,
-              id: s._id,
-              price: s.pricePerHour,
-              capacity: s.maxCapacity,
-              img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
-           }));
-           setSpotsList([...dbSpots.reverse(), ...INITIAL_SPOTS]);
+          const dbSpots = data.map(s => ({
+            ...s,
+            id: s._id,
+            price: s.pricePerHour,
+            capacity: s.maxCapacity,
+            status: s.status || 'approved',
+            img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
+          }));
+          const dbIds = new Set(dbSpots.map(s => s.id));
+          const initials = INITIAL_SPOTS.filter(s => !dbIds.has(s.id));
+          setSpotsList([...dbSpots, ...initials]);
         }
       })
-      .catch(err => console.error("API Fetch Error:", err));
+      .catch(err => console.error("Spots API Fetch Error:", err));
+
+    fetch(`${API_URL}/api/auth/users`)
+      .then(res => res.json())
+      .then(data => {
+        if(data && Array.isArray(data) && data.length > 0) {
+          setUsersList(data);
+        }
+      })
+      .catch(err => console.error("Users API Fetch Error:", err));
+  };
+
+  useEffect(() => {
+    fetchAllData();
   }, [API_URL]);
+
+  const handleLoginSuccess = (user) => {
+    const isHoussemAdmin = user.email && user.email.toLowerCase() === 'houssembs.tech@gmail.com';
+    const finalUser = isHoussemAdmin ? { ...user, role: 'admin', canEdit: true } : user;
+    localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
+    setCurrentUser(finalUser);
+  };
+
+  const handleUpdateSpotStatus = async (spotId, newStatus) => {
+    setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? { ...s, status: newStatus } : s));
+    if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) {
+      setSelectedSpot(prev => ({ ...prev, status: newStatus }));
+    }
+    try {
+      await fetch(`${API_URL}/api/spots/${spotId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+    } catch (e) {
+      console.warn("Backend offline, status updated locally:", e);
+    }
+  };
+
+  const handleDeleteSpot = async (spotId) => {
+    if (!window.confirm("Confirmer la suppression définitive de ce spot ?")) return;
+    setSpotsList(prev => prev.filter(s => s.id !== spotId && s._id !== spotId));
+    if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) {
+      setSelectedSpot(null);
+    }
+    try {
+      await fetch(`${API_URL}/api/spots/${spotId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.warn("Backend offline, spot deleted locally:", e);
+    }
+  };
+
+  const handleToggleCanEdit = async (userId, currentCanEdit) => {
+    const nextVal = !currentCanEdit;
+    setUsersList(prev => prev.map(u => (u._id === userId || u.id === userId) ? { ...u, canEdit: nextVal } : u));
+    if (currentUser && (currentUser._id === userId || currentUser.id === userId || currentUser.email === usersList.find(u => (u._id === userId || u.id === userId))?.email)) {
+      const updatedUser = { ...currentUser, canEdit: nextVal };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('vibespace_user', JSON.stringify(updatedUser));
+    }
+    try {
+      await fetch(`${API_URL}/api/auth/users/${userId}/can-edit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canEdit: nextVal })
+      });
+    } catch (e) {
+      console.warn("Backend offline, permission updated locally:", e);
+    }
+  };
+
+  const handleCreateUser = async (newUserData) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUserData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur création utilisateur');
+      setUsersList([data, ...usersList]);
+    } catch (e) {
+      setUsersList([{ ...newUserData, _id: 'u_' + Date.now() }, ...usersList]);
+    }
+    alert(`Compte ${newUserData.role === 'admin' ? 'Administrateur' : 'Responsable'} créé pour ${newUserData.name} ! 🎉`);
+  };
+
+  const handleSaveEditedSpot = async (updatedData, newFiles) => {
+    const spotId = updatedData.id || updatedData._id;
+    const formData = new FormData();
+    formData.append('title', updatedData.title);
+    formData.append('location', updatedData.location);
+    formData.append('description', updatedData.description);
+    formData.append('category', updatedData.category);
+    formData.append('pricePerHour', updatedData.pricePerHour);
+    formData.append('maxCapacity', updatedData.maxCapacity);
+    formData.append('hostEmail', updatedData.hostEmail);
+    formData.append('hostPhone', updatedData.hostPhone);
+    formData.append('hostWhatsapp', updatedData.hostWhatsapp || '');
+    if (updatedData.addons) formData.append('addons', JSON.stringify(updatedData.addons));
+
+    if (newFiles && newFiles.length > 0) {
+      newFiles.slice(0, 5).forEach(f => formData.append('images', f));
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/spots/${spotId}`, {
+        method: 'PUT',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors de la mise à jour');
+      const savedSpot = {
+        ...data,
+        id: data._id,
+        price: data.pricePerHour,
+        capacity: data.maxCapacity,
+        img: data.images && data.images.length > 0 ? data.images[0] : (data.imageUrl || updatedData.img)
+      };
+      setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? savedSpot : s));
+      if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) setSelectedSpot(savedSpot);
+    } catch (err) {
+      setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? updatedData : s));
+      if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) setSelectedSpot(updatedData);
+    }
+  };
 
   const toggleLike = (e, id) => {
     e.stopPropagation();
@@ -179,6 +360,9 @@ function App() {
   const finalTotal = spotBaseCost + extraGuestsCost + animalsCostTemp + addonsCost;
 
   const filteredSpots = spotsList.filter(spot => {
+    // Only approved spots on public explore page (or legacy mock spots without status)
+    const isApproved = !spot.status || spot.status === 'approved';
+    if (!isApproved) return false;
     const matchCategory = activeCategory === '🔥 Tout' 
                           || spot.category === activeCategory 
                           || (spot.idealFor && spot.idealFor.some(tag => activeCategory.includes(tag)));
@@ -196,6 +380,11 @@ function App() {
           <span className="logo-text">Vibe<span className="text-gradient">Space</span></span>
         </div>
         <div className="nav-right">
+          {currentUser?.role === 'admin' && (
+            <button className="btn-admin-nav" onClick={() => setShowAdminModal(true)}>
+              🛡️ Admin
+            </button>
+          )}
           <button className="btn-host" onClick={() => setShowHostModal(true)}>Ajouter ton spot ⚡</button>
           <div className="profile-btn-wrapper">
             <button 
@@ -223,13 +412,31 @@ function App() {
             {showUserMenu && currentUser && (
               <div className="user-dropdown-menu">
                 <div className="user-dropdown-header">
-                  <p className="ud-name">👋 {currentUser.name}</p>
+                  <div className="user-dropdown-title-row">
+                    <p className="ud-name">👋 {currentUser.name}</p>
+                    <span className={`ud-role-badge ${currentUser.role}`}>
+                      {currentUser.role === 'admin' ? '🛡️ Admin' : '🏢 Responsable'}
+                    </span>
+                  </div>
                   <p className="ud-email">{currentUser.email}</p>
+                  {currentUser.phone && <p className="ud-phone">📞 {currentUser.phone}</p>}
                 </div>
                 <div className="user-dropdown-divider"></div>
+                
+                {currentUser.role === 'admin' && (
+                  <button className="user-dropdown-item admin-link" onClick={() => { setShowAdminModal(true); setShowUserMenu(false); }}>
+                    🛡️ Administration (Spots & Comptes)
+                  </button>
+                )}
+
+                <button className="user-dropdown-item" onClick={() => { setShowMySpotsModal(true); setShowUserMenu(false); }}>
+                  🏢 Mes Espaces & Fiches
+                </button>
+
                 <button className="user-dropdown-item" onClick={() => { setShowHostModal(true); setShowUserMenu(false); }}>
                   ⚡ Ajouter un nouveau spot
                 </button>
+
                 <button className="user-dropdown-item logout" onClick={() => {
                   localStorage.removeItem('vibespace_user');
                   setCurrentUser(null);
@@ -585,9 +792,17 @@ function App() {
                 formData.append('addons', JSON.stringify(configuredAddons));
                 formData.append('allowedAudiences', JSON.stringify(audienceNodes.length > 0 ? audienceNodes : []));
                 formData.append('animalFee', isNaN(animalFee) ? 13 : animalFee);
-                formData.append('hostEmail', form.querySelector('input[name="hostEmail"]')?.value || '');
-                formData.append('hostPhone', form.querySelector('input[name="hostPhone"]')?.value || '');
-                formData.append('hostWhatsapp', form.querySelector('input[name="hostWhatsapp"]')?.value || '');
+                const inputHostEmail = form.querySelector('input[name="hostEmail"]')?.value || currentUser?.email || '';
+                const inputHostPhone = form.querySelector('input[name="hostPhone"]')?.value || currentUser?.phone || '';
+                const inputHostWa = form.querySelector('input[name="hostWhatsapp"]')?.value || '';
+                const isAutoApproved = currentUser?.role === 'admin' || inputHostEmail.toLowerCase() === 'houssembs.tech@gmail.com';
+                const spotInitialStatus = isAutoApproved ? 'approved' : 'pending';
+
+                formData.append('hostEmail', inputHostEmail);
+                formData.append('hostPhone', inputHostPhone);
+                formData.append('hostWhatsapp', inputHostWa);
+                formData.append('status', spotInitialStatus);
+                formData.append('hostUserId', currentUser?._id || currentUser?.id || '');
 
                 if (uploadedFiles.length > 0) {
                   uploadedFiles.slice(0, 5).forEach(f => formData.append('images', f));
@@ -605,14 +820,22 @@ function App() {
                 .then(savedSpot => {
                   const finalSpot = {
                     ...savedSpot,
-                    id: savedSpot._id,
-                    price: savedSpot.pricePerHour,
-                    capacity: savedSpot.maxCapacity,
+                    id: savedSpot._id || ('spot_' + Date.now()),
+                    price: savedSpot.pricePerHour || parseFloat(spotPrice),
+                    capacity: savedSpot.maxCapacity || parseInt(cap),
+                    status: savedSpot.status || spotInitialStatus,
+                    hostEmail: savedSpot.hostEmail || inputHostEmail,
+                    hostPhone: savedSpot.hostPhone || inputHostPhone,
+                    hostWhatsapp: savedSpot.hostWhatsapp || inputHostWa,
                     img: savedSpot.images && savedSpot.images.length > 0 ? savedSpot.images[0] : (savedSpot.imageUrl || imgUrl)
                   };
                   setSpotsList([finalSpot, ...spotsList]);
                   setUploadedFiles([]);
-                  alert('Félicitations ! Ton espace a été définitivement sauvegardé sur VibeSpace 🚀'); 
+                  if (spotInitialStatus === 'approved') {
+                    alert('Félicitations ! Ton espace a été publié et est maintenant en ligne sur VibeSpace 🚀');
+                  } else {
+                    alert("Demande transmise avec succès ! ⏳ Votre spot a été envoyé à l'administrateur et est en attente de validation.");
+                  }
                   setShowHostModal(false); 
                 })
                 .catch(err => {
@@ -790,122 +1013,43 @@ function App() {
       )}
 
       {/* Authentication Modal */}
-      {showAuthModal && (
-        <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="modal-content auth-modal-box" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowAuthModal(false)}>✕</button>
-            
-            <div className="auth-header">
-              <img src="/logo-icon.png" alt="VibeSpace" className="auth-logo-icon" />
-              <h2>{authMode === 'login' ? 'Bon retour parmi nous' : 'Rejoins le Vibe'}</h2>
-              <p>{authMode === 'login' ? 'Connecte-toi pour gérer tes réservations et spots.' : 'Crée ton profil membre en quelques secondes.'}</p>
-            </div>
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        currentUser={currentUser}
+        onLoginSuccess={handleLoginSuccess}
+        API_URL={API_URL}
+      />
 
-            <div className="auth-tabs">
-              <button 
-                type="button" 
-                className={`auth-tab ${authMode === 'login' ? 'active' : ''}`}
-                onClick={() => setAuthMode('login')}
-              >
-                Connexion
-              </button>
-              <button 
-                type="button" 
-                className={`auth-tab ${authMode === 'register' ? 'active' : ''}`}
-                onClick={() => setAuthMode('register')}
-              >
-                Inscription
-              </button>
-            </div>
+      {/* Admin Panel Modal */}
+      <AdminModal
+        isOpen={showAdminModal}
+        onClose={() => setShowAdminModal(false)}
+        spotsList={spotsList}
+        usersList={usersList}
+        onUpdateSpotStatus={handleUpdateSpotStatus}
+        onDeleteSpot={handleDeleteSpot}
+        onToggleCanEdit={handleToggleCanEdit}
+        onCreateUser={handleCreateUser}
+      />
 
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const user = {
-                name: authMode === 'register' ? (authName || 'Membre Vibe') : (authEmail.split('@')[0] || 'Membre Vibe'),
-                email: authEmail || 'contact@vibespace.tn'
-              };
-              localStorage.setItem('vibespace_user', JSON.stringify(user));
-              setCurrentUser(user);
-              setShowAuthModal(false);
-            }} className="auth-form">
-              {authMode === 'register' && (
-                <div className="auth-field">
-                  <label>Nom complet</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Ex: Sarah Ben Salem" 
-                    value={authName} 
-                    onChange={(e) => setAuthName(e.target.value)} 
-                  />
-                </div>
-              )}
+      {/* Responsable - My Spots Modal */}
+      <MySpotsModal
+        isOpen={showMySpotsModal}
+        onClose={() => setShowMySpotsModal(false)}
+        spotsList={spotsList}
+        currentUser={currentUser}
+        onEditSpot={(spot) => setEditingSpot(spot)}
+        onAddNewSpot={() => setShowHostModal(true)}
+      />
 
-              <div className="auth-field">
-                <label>Email</label>
-                <input 
-                  type="email" 
-                  required 
-                  placeholder="nom@exemple.com" 
-                  value={authEmail} 
-                  onChange={(e) => setAuthEmail(e.target.value)} 
-                />
-              </div>
-
-              <div className="auth-field">
-                <div className="auth-field-header">
-                  <label>Mot de passe</label>
-                  {authMode === 'login' && (
-                    <span className="auth-forgot-link">Oublié ?</span>
-                  )}
-                </div>
-                <input 
-                  type="password" 
-                  required 
-                  placeholder="••••••••" 
-                  value={authPassword} 
-                  onChange={(e) => setAuthPassword(e.target.value)} 
-                />
-              </div>
-
-              <button type="submit" className="btn-reserve-large full-width btn-magic auth-submit-btn">
-                {authMode === 'login' ? 'Se connecter ⚡' : 'Créer mon compte ✨'}
-              </button>
-
-              <div className="auth-divider">
-                <span>ou continuer avec</span>
-              </div>
-
-              <button 
-                type="button" 
-                className="auth-google-btn" 
-                onClick={() => {
-                  const googleUser = { name: 'Utilisateur Google', email: 'google.user@vibespace.tn' };
-                  localStorage.setItem('vibespace_user', JSON.stringify(googleUser));
-                  setCurrentUser(googleUser);
-                  setShowAuthModal(false);
-                }}
-              >
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                Google
-              </button>
-
-              <p className="auth-switch-prompt">
-                {authMode === 'login' ? (
-                  <>Pas encore de compte ? <button type="button" className="auth-switch-link" onClick={() => setAuthMode('register')}>Inscris-toi gratuitement</button></>
-                ) : (
-                  <>Déjà membre ? <button type="button" className="auth-switch-link" onClick={() => setAuthMode('login')}>Connecte-toi</button></>
-                )}
-              </p>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Edit Spot Modal */}
+      <EditSpotModal
+        spot={editingSpot}
+        onClose={() => setEditingSpot(null)}
+        onSaveSpot={handleSaveEditedSpot}
+        addonsList={ADDONS_LIST}
+      />
     </>
   );
 }

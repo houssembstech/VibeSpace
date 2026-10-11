@@ -44,6 +44,12 @@ const spotSchema = new mongoose.Schema({
   hostEmail: { type: String },
   hostPhone: { type: String },
   hostWhatsapp: { type: String },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  hostUserId: { type: String },
   rating: {
     type: Number,
     default: 5.0
