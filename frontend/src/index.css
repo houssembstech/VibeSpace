@@ -2374,4 +2374,45 @@ body {
   display: block;
 }
 
+/* Subscription Banners & Renewal Modal Styles */
+.top-subscription-banner {
+  animation: bannerSlideDown 0.35s ease forwards;
+}
+
+@keyframes bannerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.renew-pack-modal {
+  max-width: 680px !important;
+  width: 95% !important;
+}
+
+.my-spot-badge.rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.subscription-alert-box {
+  animation: pulseWarning 3s infinite alternate;
+}
+
+@keyframes pulseWarning {
+  0% {
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+  }
+  100% {
+    box-shadow: 0 8px 28px rgba(239, 68, 68, 0.4);
+  }
+}
+
+
 

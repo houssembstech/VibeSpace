@@ -59,6 +59,71 @@ const ensureAdminAccount = async () => {
 };
 ensureAdminAccount();
 
+// Helper: Calculate 1-year pack expiration and 7-day grace period
+const calculatePackDates = (purchasedAtDate) => {
+  const purchased = purchasedAtDate ? new Date(purchasedAtDate) : new Date();
+  const expires = new Date(purchased);
+  expires.setFullYear(expires.getFullYear() + 1); // 1 an exact
+  const grace = new Date(expires);
+  grace.setDate(grace.getDate() + 7); // 7 jours de grâce après l'an
+  return {
+    packPurchasedAt: purchased,
+    packExpiresAt: expires,
+    packGraceEndsAt: grace
+  };
+};
+
+const getSubscriptionStatus = (user) => {
+  if (!user) return 'active';
+  if (user.role === 'admin') return 'active';
+  const now = new Date();
+
+  const purchased = user.packPurchasedAt ? new Date(user.packPurchasedAt) : (user.createdAt ? new Date(user.createdAt) : now);
+  const expiresAt = user.packExpiresAt 
+    ? new Date(user.packExpiresAt) 
+    : new Date(new Date(purchased).setFullYear(new Date(purchased).getFullYear() + 1));
+  const graceEndsAt = user.packGraceEndsAt 
+    ? new Date(user.packGraceEndsAt) 
+    : new Date(new Date(expiresAt).setDate(new Date(expiresAt).getDate() + 7));
+
+  if (now < expiresAt) {
+    return 'active';
+  } else if (now >= expiresAt && now < graceEndsAt) {
+    return 'expired_grace'; // Alerte 7 jours
+  } else {
+    return 'suspended'; // Masqué après 7 jours
+  }
+};
+
+const formatUserResponse = (user) => {
+  const raw = user.toObject ? user.toObject() : user;
+  const dates = calculatePackDates(raw.packPurchasedAt || raw.createdAt);
+  const expiresAt = raw.packExpiresAt || dates.packExpiresAt;
+  const graceEndsAt = raw.packGraceEndsAt || dates.packGraceEndsAt;
+  const status = getSubscriptionStatus({
+    ...raw,
+    packExpiresAt: expiresAt,
+    packGraceEndsAt: graceEndsAt
+  });
+
+  return {
+    id: raw._id,
+    name: raw.name,
+    spaceName: raw.spaceName,
+    email: raw.email,
+    phone: raw.phone,
+    role: raw.role,
+    canEdit: raw.canEdit,
+    pack: raw.pack || 'pack_1',
+    packPrice: raw.packPrice || 70,
+    packPurchasedAt: raw.packPurchasedAt || dates.packPurchasedAt,
+    packExpiresAt: expiresAt,
+    packGraceEndsAt: graceEndsAt,
+    subscriptionStatus: status,
+    renewalRequest: raw.renewalRequest || { status: 'none' }
+  };
+};
+
 // GET Spots (filters approved by default for public, or all=true for admin, or by hostEmail)
 app.get('/api/spots', async (req, res) => {
   try {
@@ -69,14 +134,39 @@ app.get('/api/spots', async (req, res) => {
     } else if (hostEmail) {
       filter = { hostEmail };
     } else {
-      // Public view: only approved spots or legacy spots without status
-      filter = {
+      // Find suspended hosts (hosts whose 1 year + 7 days grace period is expired)
+      const now = new Date();
+      const suspendedUsers = await User.find({
+        role: { $ne: 'admin' },
         $or: [
-          { status: 'approved' },
-          { status: { $exists: false } },
-          { status: null }
+          { packGraceEndsAt: { $lte: now } },
+          { 
+            packGraceEndsAt: { $exists: false },
+            packPurchasedAt: { $lte: new Date(now.getTime() - 372 * 24 * 60 * 60 * 1000) }
+          }
+        ]
+      }, 'email');
+
+      const suspendedEmails = suspendedUsers.map(u => (u.email || '').toLowerCase().trim()).filter(Boolean);
+
+      // Public view: only approved spots or legacy spots without status, AND not belonging to a suspended host
+      filter = {
+        $and: [
+          {
+            $or: [
+              { status: 'approved' },
+              { status: { $exists: false } },
+              { status: null }
+            ]
+          }
         ]
       };
+
+      if (suspendedEmails.length > 0) {
+        filter.$and.push({
+          hostEmail: { $nin: suspendedEmails }
+        });
+      }
     }
     const spots = await Spot.find(filter).sort({ createdAt: -1 });
     res.json(spots);
@@ -224,6 +314,8 @@ app.post('/api/auth/register', async (req, res) => {
     const packPrice = chosenPack === 'pack_2' ? 120 : 70;
     const canEditAllowed = isAdmin ? true : (chosenPack === 'pack_2');
 
+    const dates = calculatePackDates(new Date());
+
     const newUser = new User({
       name,
       spaceName: spaceName || '',
@@ -233,21 +325,14 @@ app.post('/api/auth/register', async (req, res) => {
       role: isAdmin ? 'admin' : 'responsable',
       canEdit: canEditAllowed,
       pack: chosenPack,
-      packPrice
+      packPrice,
+      packPurchasedAt: dates.packPurchasedAt,
+      packExpiresAt: dates.packExpiresAt,
+      packGraceEndsAt: dates.packGraceEndsAt
     });
 
     await newUser.save();
-    res.status(201).json({
-      id: newUser._id,
-      name: newUser.name,
-      spaceName: newUser.spaceName,
-      email: newUser.email,
-      phone: newUser.phone,
-      role: newUser.role,
-      canEdit: newUser.canEdit,
-      pack: newUser.pack,
-      packPrice: newUser.packPrice
-    });
+    res.status(201).json(formatUserResponse(newUser));
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de l'inscription", error: error.message });
   }
@@ -264,6 +349,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Special auto-grant for houssembs.tech@gmail.com
     if (cleanEmail === 'houssembs.tech@gmail.com') {
+      const dates = calculatePackDates(new Date());
       if (!user) {
         user = new User({
           name: 'Houssem Admin',
@@ -273,13 +359,19 @@ app.post('/api/auth/login', async (req, res) => {
           role: 'admin',
           canEdit: true,
           pack: 'pack_2',
-          packPrice: 120
+          packPrice: 120,
+          packPurchasedAt: dates.packPurchasedAt,
+          packExpiresAt: dates.packExpiresAt,
+          packGraceEndsAt: dates.packGraceEndsAt
         });
         await user.save();
       } else {
         user.role = 'admin';
         user.canEdit = true;
         user.pack = 'pack_2';
+        user.packPurchasedAt = user.packPurchasedAt || dates.packPurchasedAt;
+        user.packExpiresAt = user.packExpiresAt || dates.packExpiresAt;
+        user.packGraceEndsAt = user.packGraceEndsAt || dates.packGraceEndsAt;
         await user.save();
       }
     }
@@ -292,27 +384,27 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Mot de passe incorrect.' });
     }
 
-    res.json({
-      id: user._id,
-      name: user.name,
-      spaceName: user.spaceName,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      canEdit: user.canEdit,
-      pack: user.pack || 'pack_1',
-      packPrice: user.packPrice || 70
-    });
+    // Auto populate dates if missing
+    if (!user.packPurchasedAt || !user.packExpiresAt) {
+      const dates = calculatePackDates(user.createdAt || new Date());
+      user.packPurchasedAt = dates.packPurchasedAt;
+      user.packExpiresAt = dates.packExpiresAt;
+      user.packGraceEndsAt = dates.packGraceEndsAt;
+      await user.save();
+    }
+
+    res.json(formatUserResponse(user));
   } catch (error) {
     res.status(500).json({ message: 'Erreur lors de la connexion', error: error.message });
   }
 });
 
-// GET /api/auth/users (Admin gets list of users)
+// GET /api/auth/users (Admin gets list of users with formatted pack status)
 app.get('/api/auth/users', async (req, res) => {
   try {
     const users = await User.find({}).sort({ createdAt: -1 });
-    res.json(users);
+    const formatted = users.map(u => formatUserResponse(u));
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ message: 'Erreur chargement utilisateurs', error: error.message });
   }
@@ -321,7 +413,7 @@ app.get('/api/auth/users', async (req, res) => {
 // POST /api/auth/users (Admin creates a user with chosen role)
 app.post('/api/auth/users', async (req, res) => {
   try {
-    const { name, spaceName, email, phone, password, role, canEdit, pack } = req.body;
+    const { name, spaceName, email, phone, password, role, canEdit, pack, packPurchasedAt } = req.body;
     if (!name || !email || !phone) {
       return res.status(400).json({ message: 'Nom, email et téléphone obligatoires.' });
     }
@@ -334,6 +426,7 @@ app.post('/api/auth/users', async (req, res) => {
 
     const chosenPack = pack || (canEdit ? 'pack_2' : 'pack_1');
     const packPrice = chosenPack === 'pack_2' ? 120 : 70;
+    const dates = calculatePackDates(packPurchasedAt || new Date());
 
     const newUser = new User({
       name,
@@ -344,11 +437,14 @@ app.post('/api/auth/users', async (req, res) => {
       role: role || 'responsable',
       canEdit: canEdit !== undefined ? canEdit : (role === 'admin' || chosenPack === 'pack_2'),
       pack: chosenPack,
-      packPrice
+      packPrice,
+      packPurchasedAt: dates.packPurchasedAt,
+      packExpiresAt: dates.packExpiresAt,
+      packGraceEndsAt: dates.packGraceEndsAt
     });
 
     await newUser.save();
-    res.status(201).json(newUser);
+    res.status(201).json(formatUserResponse(newUser));
   } catch (error) {
     res.status(500).json({ message: 'Erreur création utilisateur', error: error.message });
   }
@@ -365,9 +461,202 @@ app.patch('/api/auth/users/:id/can-edit', async (req, res) => {
     }
     const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
-    res.json(user);
+    res.json(formatUserResponse(user));
   } catch (error) {
     res.status(500).json({ message: 'Erreur mise à jour permission', error: error.message });
+  }
+});
+
+// POST /api/auth/request-renewal (Host submits a renewal request awaiting admin payment verification)
+app.post('/api/auth/request-renewal', async (req, res) => {
+  try {
+    const { email, pack, requestedPack, note, paymentMethod } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email obligatoire.' });
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const packToRequest = requestedPack || pack;
+    const chosenPack = packToRequest === 'pack_2' ? 'pack_2' : 'pack_1';
+    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
+
+    user.renewalRequest = {
+      status: 'pending',
+      requestedPack: chosenPack,
+      requestedPackPrice: packPrice,
+      requestedAt: new Date(),
+      paymentMethod: paymentMethod || 'Virement / Espèces',
+      note: note || '',
+      decidedAt: null
+    };
+
+    await user.save();
+    res.json({
+      message: 'Demande de renouvellement envoyée avec succès ! L\'administrateur va vérifier votre paiement et activer votre pack.',
+      user: formatUserResponse(user)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la demande de renouvellement', error: error.message });
+  }
+});
+
+// POST /api/auth/approve-renewal (Admin approves payment and officially renews the pack for 1 year)
+app.post('/api/auth/approve-renewal', async (req, res) => {
+  try {
+    const { email, userId, pack, requestedPack } = req.body;
+    let user;
+    if (userId) {
+      user = await User.findById(userId);
+    } else if (email) {
+      user = await User.findOne({ email: email.toLowerCase().trim() });
+    }
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const targetPack = requestedPack || pack || user.renewalRequest?.requestedPack || user.pack || 'pack_1';
+    const packPrice = targetPack === 'pack_2' ? 120 : 70;
+    const canEdit = user.role === 'admin' ? true : (targetPack === 'pack_2');
+
+    // Official renewal: 1 year from now + 7 days grace
+    const dates = calculatePackDates(new Date());
+    user.pack = targetPack;
+    user.packPrice = packPrice;
+    user.canEdit = canEdit;
+    user.packPurchasedAt = dates.packPurchasedAt;
+    user.packExpiresAt = dates.packExpiresAt;
+    user.packGraceEndsAt = dates.packGraceEndsAt;
+    user.renewalRequest = {
+      status: 'approved',
+      requestedPack: targetPack,
+      requestedPackPrice: packPrice,
+      decidedAt: new Date(),
+      note: 'Paiement vérifié et validé par l\'administrateur.'
+    };
+
+    await user.save();
+    res.json({
+      message: `Paiement vérifié ! Abonnement ${targetPack === 'pack_2' ? 'Pack Pro (120 DT)' : 'Pack 01 (70 DT)'} validé et actif pour 1 an 🚀`,
+      user: formatUserResponse(user)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur validation renouvellement', error: error.message });
+  }
+});
+
+// POST /api/auth/reject-renewal (Admin rejects renewal request if payment not received)
+app.post('/api/auth/reject-renewal', async (req, res) => {
+  try {
+    const { email, userId, reason } = req.body;
+    let user;
+    if (userId) {
+      user = await User.findById(userId);
+    } else if (email) {
+      user = await User.findOne({ email: email.toLowerCase().trim() });
+    }
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    user.renewalRequest = {
+      status: 'rejected',
+      requestedPack: user.renewalRequest?.requestedPack || user.pack || 'pack_1',
+      requestedPackPrice: user.renewalRequest?.requestedPackPrice || user.packPrice || 70,
+      decidedAt: new Date(),
+      note: reason || 'Paiement non confirmé par l\'administrateur.'
+    };
+
+    await user.save();
+    res.json({
+      message: 'Demande de renouvellement rejetée.',
+      user: formatUserResponse(user)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur rejet renouvellement', error: error.message });
+  }
+});
+
+// POST /api/auth/renew-pack (Admin direct renewal for 1 year)
+app.post('/api/auth/renew-pack', async (req, res) => {
+  try {
+    const { email, pack } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email obligatoire.' });
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const chosenPack = pack || user.renewalRequest?.requestedPack || user.pack || 'pack_1';
+    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
+    const canEdit = user.role === 'admin' ? true : (chosenPack === 'pack_2');
+
+    // Renewal: 1 year from now + 7 days grace
+    const dates = calculatePackDates(new Date());
+    user.pack = chosenPack;
+    user.packPrice = packPrice;
+    user.canEdit = canEdit;
+    user.packPurchasedAt = dates.packPurchasedAt;
+    user.packExpiresAt = dates.packExpiresAt;
+    user.packGraceEndsAt = dates.packGraceEndsAt;
+    user.renewalRequest = {
+      status: 'approved',
+      requestedPack: chosenPack,
+      requestedPackPrice: packPrice,
+      decidedAt: new Date(),
+      note: 'Renouvelé directement par l\'administrateur.'
+    };
+
+    await user.save();
+    res.json({
+      message: 'Abonnement annuel renouvelé avec succès pour 1 an ! 🚀',
+      user: formatUserResponse(user)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur renouvellement pack', error: error.message });
+  }
+});
+
+// POST /api/auth/simulate-pack-date (Testing tool: simulate 1 year past or 1 year + 7 days past)
+app.post('/api/auth/simulate-pack-date', async (req, res) => {
+  try {
+    const { email, mode } = req.body; // 'grace' | 'suspended' | 'reset'
+    if (!email) return res.status(400).json({ message: 'Email obligatoire.' });
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    const now = new Date();
+    if (mode === 'grace') {
+      // Expiré il y a 2 jours : dans la période de grâce de 7 jours
+      const simulatedPurchased = new Date(now);
+      simulatedPurchased.setFullYear(simulatedPurchased.getFullYear() - 1);
+      simulatedPurchased.setDate(simulatedPurchased.getDate() - 2);
+      const dates = calculatePackDates(simulatedPurchased);
+      user.packPurchasedAt = dates.packPurchasedAt;
+      user.packExpiresAt = dates.packExpiresAt;
+      user.packGraceEndsAt = dates.packGraceEndsAt;
+    } else if (mode === 'suspended' || mode === 'expired') {
+      // Expiré depuis plus de 7 jours (1 an et 10 jours passés) : espaces masqués
+      const simulatedPurchased = new Date(now);
+      simulatedPurchased.setFullYear(simulatedPurchased.getFullYear() - 1);
+      simulatedPurchased.setDate(simulatedPurchased.getDate() - 10);
+      const dates = calculatePackDates(simulatedPurchased);
+      user.packPurchasedAt = dates.packPurchasedAt;
+      user.packExpiresAt = dates.packExpiresAt;
+      user.packGraceEndsAt = dates.packGraceEndsAt;
+    } else {
+      // Reset : Actif dès aujourd'hui pour 1 an
+      const dates = calculatePackDates(now);
+      user.packPurchasedAt = dates.packPurchasedAt;
+      user.packExpiresAt = dates.packExpiresAt;
+      user.packGraceEndsAt = dates.packGraceEndsAt;
+    }
+
+    await user.save();
+    res.json({
+      message: `Simulation "${mode}" appliquée avec succès !`,
+      user: formatUserResponse(user)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur simulation pack', error: error.message });
   }
 });
 

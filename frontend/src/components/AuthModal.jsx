@@ -202,7 +202,6 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
                     <li className="highlight-feature">✏️ <strong>Modifications & Mises à jour illimitées</strong> toute l'année</li>
                     <li>📸 <strong>Changement de photos, tarifs</strong> (heure, ½ j, jour) & description</li>
                     <li>⚙️ <strong>Ajustement des options, équipements</strong> et capacités</li>
-                    <li>🔒 <strong>Nom d'espace garanti & certifié</strong> (fixe, anti-usurpation)</li>
                     <li>💬 <strong>Réservations directes WhatsApp</strong> & Email</li>
                     <li>📅 <strong>Abonnement valable 1 an</strong> (renouvelable)</li>
                   </ul>

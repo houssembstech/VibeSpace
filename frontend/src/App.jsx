@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import AuthModal from './components/AuthModal';
 import AdminModal from './components/AdminModal';
-import MySpotsModal from './components/MySpotsModal';
+import MySpotsModal, { computeSubscription } from './components/MySpotsModal';
 import EditSpotModal from './components/EditSpotModal';
+import RenewPackModal from './components/RenewPackModal';
 
 const COURSES_CATEGORIES = ['🔥 Tout', '✨ Célébrer', '🌿 Se détendre', '📸 Shooting', '🎬 Regarder', '🎮 Jouer', '⛺ Camping'];
 
@@ -140,6 +141,7 @@ function App() {
 
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showMySpotsModal, setShowMySpotsModal] = useState(false);
+  const [showRenewModal, setShowRenewModal] = useState(false);
   const [editingSpot, setEditingSpot] = useState(null);
   const [usersList, setUsersList] = useState([
     {
@@ -268,6 +270,112 @@ function App() {
     const finalUser = isHoussemAdmin ? { ...user, role: 'admin', canEdit: true } : user;
     localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
     setCurrentUser(finalUser);
+  };
+
+  const handleRenewSuccess = (updatedUser) => {
+    const isHoussemAdmin = updatedUser.email && updatedUser.email.toLowerCase() === 'houssembs.tech@gmail.com';
+    const finalUser = isHoussemAdmin ? { ...updatedUser, role: 'admin', canEdit: true } : updatedUser;
+    localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
+    setCurrentUser(finalUser);
+    setUsersList(prev => prev.map(u => (u.email?.toLowerCase() === finalUser.email?.toLowerCase()) ? finalUser : u));
+    fetchAllData();
+  };
+
+  const handleRenewRequestSuccess = (updatedUser) => {
+    const isHoussemAdmin = updatedUser.email && updatedUser.email.toLowerCase() === 'houssembs.tech@gmail.com';
+    const finalUser = isHoussemAdmin ? { ...updatedUser, role: 'admin', canEdit: true } : updatedUser;
+    localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
+    setCurrentUser(finalUser);
+    setUsersList(prev => prev.map(u => (u.email?.toLowerCase() === finalUser.email?.toLowerCase()) ? finalUser : u));
+    fetchAllData();
+  };
+
+  const handleApproveRenewal = async (email, pack) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/approve-renewal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, pack })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors de la validation');
+      alert(data.message || 'Paiement confirmé et abonnement activé pour 1 an ! 🚀');
+      if (data.user) {
+        if (currentUser && currentUser.email?.toLowerCase() === email.toLowerCase()) {
+          const isHoussemAdmin = data.user.email?.toLowerCase() === 'houssembs.tech@gmail.com';
+          const finalUser = isHoussemAdmin ? { ...data.user, role: 'admin', canEdit: true } : data.user;
+          localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
+          setCurrentUser(finalUser);
+        }
+      }
+      fetchAllData();
+    } catch (e) {
+      alert(`Erreur: ${e.message}`);
+    }
+  };
+
+  const handleRejectRenewal = async (email, reason) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/reject-renewal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reason })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors du rejet');
+      alert(data.message || 'Demande de renouvellement rejetée.');
+      if (data.user) {
+        if (currentUser && currentUser.email?.toLowerCase() === email.toLowerCase()) {
+          const isHoussemAdmin = data.user.email?.toLowerCase() === 'houssembs.tech@gmail.com';
+          const finalUser = isHoussemAdmin ? { ...data.user, role: 'admin', canEdit: true } : data.user;
+          localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
+          setCurrentUser(finalUser);
+        }
+      }
+      fetchAllData();
+    } catch (e) {
+      alert(`Erreur: ${e.message}`);
+    }
+  };
+
+  const handleRenewPackAdmin = async (email) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/renew-pack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur lors du renouvellement');
+      alert(`Pack renouvelé avec succès pour ${email} ! 🚀`);
+      fetchAllData();
+    } catch (e) {
+      alert(`Erreur: ${e.message}`);
+    }
+  };
+
+  const handleSimulatePackDate = async (mode) => {
+    if (!currentUser?.email) return;
+    try {
+      const res = await fetch(`${API_URL}/api/auth/simulate-pack-date`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, mode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Erreur simulation');
+      if (data.user) {
+        const isHoussemAdmin = data.user.email && data.user.email.toLowerCase() === 'houssembs.tech@gmail.com';
+        const finalUser = isHoussemAdmin ? { ...data.user, role: 'admin', canEdit: true } : data.user;
+        localStorage.setItem('vibespace_user', JSON.stringify(finalUser));
+        setCurrentUser(finalUser);
+        setUsersList(prev => prev.map(u => (u.email?.toLowerCase() === finalUser.email?.toLowerCase()) ? finalUser : u));
+      }
+      fetchAllData();
+      return data.message;
+    } catch (e) {
+      throw e;
+    }
   };
 
   const handleUpdateSpotStatus = async (spotId, newStatus) => {
@@ -578,7 +686,18 @@ function App() {
   const emailSubject = `Demande de réservation VibeSpace - ${selectedSpot?.title || 'Espace'} (${date})`;
   const emailReservationUrl = `mailto:${targetHostEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(getBookingRecapContent(true))}`;
 
+  const currentUserSub = currentUser ? computeSubscription(currentUser) : null;
+
   const filteredSpots = spotsList.filter(spot => {
+    // Check if host is suspended (1-year expiration + 7-day grace period exceeded)
+    if (spot.hostEmail) {
+      const hostUser = usersList.find(u => u.email && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
+      if (hostUser) {
+        const hostSub = computeSubscription(hostUser);
+        if (hostSub.isSuspended) return false;
+      }
+    }
+
     // Only approved spots on public explore page (or legacy mock spots without status)
     const isApproved = !spot.status || spot.status === 'approved';
     if (!isApproved) return false;
@@ -592,6 +711,115 @@ function App() {
 
   return (
     <>
+      {/* Sticky Subscription Alert Banners for Responsables */}
+      {currentUser && currentUser.role === 'responsable' && currentUser.renewalRequest?.status === 'pending' && (
+        <div className="top-subscription-banner pending" style={{
+          background: 'linear-gradient(90deg, #b45309, #d97706)',
+          color: '#fff',
+          padding: '0.65rem 1.2rem',
+          textAlign: 'center',
+          fontSize: '0.88rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          zIndex: 9999,
+          position: 'relative',
+          boxShadow: '0 4px 15px rgba(217, 119, 6, 0.4)'
+        }}>
+          <span>⏳ <strong>DEMANDE EN COURS DE VÉRIFICATION :</strong> Votre demande pour le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? 'Pack Pro (120 DT)' : 'Pack 01 (70 DT)'}</strong> est en attente de validation de paiement par l'administrateur.</span>
+          <button
+            onClick={() => setShowRenewModal(true)}
+            style={{
+              background: '#fff',
+              color: '#b45309',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '0.35rem 1rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+            }}
+          >
+            ✏️ Modifier ma demande
+          </button>
+        </div>
+      )}
+
+      {currentUser && currentUser.role === 'responsable' && currentUser.renewalRequest?.status !== 'pending' && currentUserSub?.isSuspended && (
+        <div className="top-subscription-banner suspended" style={{
+          background: 'linear-gradient(90deg, #b91c1c, #ef4444)',
+          color: '#fff',
+          padding: '0.65rem 1.2rem',
+          textAlign: 'center',
+          fontSize: '0.88rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          zIndex: 9999,
+          position: 'relative',
+          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.4)'
+        }}>
+          <span>🔴 <strong>ALERTE ESPACES MASQUÉS :</strong> Votre pack annuel est arrivé à échéance (période de grâce de 7 jours dépassée). Vos fiches sont actuellement <strong>masquées aux visiteurs</strong> !</span>
+          <button
+            onClick={() => setShowRenewModal(true)}
+            style={{
+              background: '#fff',
+              color: '#b91c1c',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '0.35rem 1rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+            }}
+          >
+            ⚡ Demander le Renouvellement
+          </button>
+        </div>
+      )}
+
+      {currentUser && currentUser.role === 'responsable' && currentUser.renewalRequest?.status !== 'pending' && currentUserSub?.isGrace && (
+        <div className="top-subscription-banner grace" style={{
+          background: 'linear-gradient(90deg, #d97706, #f59e0b)',
+          color: '#fff',
+          padding: '0.65rem 1.2rem',
+          textAlign: 'center',
+          fontSize: '0.88rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          zIndex: 9999,
+          position: 'relative',
+          boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)'
+        }}>
+          <span>⚠️ <strong>ALERTE RENOUVELLEMENT :</strong> Votre abonnement annuel d'1 an a expiré. Il vous reste <strong>{currentUserSub.graceDaysRemaining} jour(s) de grâce</strong> pour envoyer votre demande avant que vos espaces ne soient masqués !</span>
+          <button
+            onClick={() => setShowRenewModal(true)}
+            style={{
+              background: '#fff',
+              color: '#b45309',
+              border: 'none',
+              borderRadius: '50px',
+              padding: '0.35rem 1rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+            }}
+          >
+            🔄 Demander le Renouvellement
+          </button>
+        </div>
+      )}
+
       {/* Background glow and Navigation ... */}
       <nav className="navbar">
         <div className="brand-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
@@ -1511,6 +1739,9 @@ function App() {
         onDeleteSpot={handleDeleteSpot}
         onToggleCanEdit={handleToggleCanEdit}
         onCreateUser={handleCreateUser}
+        onRenewPackAdmin={handleRenewPackAdmin}
+        onApproveRenewal={handleApproveRenewal}
+        onRejectRenewal={handleRejectRenewal}
       />
 
       {/* Responsable - My Spots Modal */}
@@ -1522,6 +1753,17 @@ function App() {
         onEditSpot={(spot) => setEditingSpot(spot)}
         onAddNewSpot={() => setShowHostModal(true)}
         onDeleteSpot={handleDeleteSpot}
+        onOpenRenewModal={() => setShowRenewModal(true)}
+        onSimulatePackDate={handleSimulatePackDate}
+      />
+
+      {/* Renew Annual Pack Modal */}
+      <RenewPackModal
+        isOpen={showRenewModal}
+        onClose={() => setShowRenewModal(false)}
+        currentUser={currentUser}
+        onSuccessRenewRequest={handleRenewRequestSuccess}
+        API_URL={API_URL}
       />
 
       {/* Edit Spot Modal */}

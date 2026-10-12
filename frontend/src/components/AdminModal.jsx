@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { computeSubscription } from './MySpotsModal';
 
 export default function AdminModal({
   isOpen,
@@ -8,9 +9,12 @@ export default function AdminModal({
   onUpdateSpotStatus,
   onDeleteSpot,
   onToggleCanEdit,
-  onCreateUser
+  onCreateUser,
+  onRenewPackAdmin,
+  onApproveRenewal,
+  onRejectRenewal
 }) {
-  const [activeTab, setActiveTab] = useState('spots'); // 'spots' | 'users'
+  const [activeTab, setActiveTab] = useState('spots'); // 'spots' | 'renewals' | 'users'
   const [spotsFilter, setSpotsFilter] = useState('all'); // 'all' | 'pending' | 'approved'
   const [showCreateUser, setShowCreateUser] = useState(false);
 
@@ -28,6 +32,7 @@ export default function AdminModal({
   // Spots counts
   const pendingSpots = spotsList.filter(s => s.status === 'pending');
   const approvedSpots = spotsList.filter(s => !s.status || s.status === 'approved');
+  const pendingRenewals = usersList.filter(u => u.renewalRequest?.status === 'pending');
 
   const displayedSpots = spotsList.filter(s => {
     if (spotsFilter === 'pending') return s.status === 'pending';
@@ -69,7 +74,7 @@ export default function AdminModal({
             <span className="admin-badge-icon">🛡️</span>
             <div>
               <h2>Panneau d'Administration</h2>
-              <p>Gestion globale des demandes de spots et des comptes responsables</p>
+              <p>Gestion globale des spots, vérification des paiements et renouvellements</p>
             </div>
           </div>
           <div className="admin-current-badge">
@@ -86,6 +91,15 @@ export default function AdminModal({
             📥 Demandes de spots
             {pendingSpots.length > 0 && (
               <span className="badge-count-pending">{pendingSpots.length}</span>
+            )}
+          </button>
+          <button
+            className={`admin-nav-tab ${activeTab === 'renewals' ? 'active' : ''}`}
+            onClick={() => setActiveTab('renewals')}
+          >
+            🔔 Renouvellements de pack
+            {pendingRenewals.length > 0 && (
+              <span className="badge-count-pending" style={{ background: '#f59e0b', color: '#fff' }}>{pendingRenewals.length}</span>
             )}
           </button>
           <button
@@ -195,7 +209,121 @@ export default function AdminModal({
           </div>
         )}
 
-        {/* TAB 2: Users & Managers */}
+        {/* TAB 2: Renewals & Payment Verification */}
+        {activeTab === 'renewals' && (
+          <div className="admin-tab-content">
+            <div className="admin-users-header">
+              <div>
+                <h3>Demandes de Renouvellement de Pack ({pendingRenewals.length})</h3>
+                <p>Vérifiez la réception du règlement (70 DT ou 120 DT) avant de valider l'abonnement annuel du responsable.</p>
+              </div>
+            </div>
+
+            {pendingRenewals.length === 0 ? (
+              <div className="admin-empty-state" style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
+                <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.8rem' }}>✨</span>
+                <h4 style={{ fontSize: '1.1rem', marginBottom: '0.4rem' }}>Aucune demande de renouvellement en attente</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Tous les paiements et renouvellements de packs ont été traités.</p>
+              </div>
+            ) : (
+              <div className="renewals-requests-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {pendingRenewals.map(u => {
+                  const req = u.renewalRequest;
+                  const isPack2 = req.requestedPack === 'pack_2';
+                  const sub = computeSubscription(u);
+                  const dateStr = req.requestedAt ? new Date(req.requestedAt).toLocaleString('fr-FR') : 'Récemment';
+
+                  return (
+                    <div key={u._id || u.id} className="renewal-request-card" style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                      borderRadius: '16px',
+                      padding: '1.2rem 1.4rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '1.2rem'
+                    }}>
+                      <div style={{ flex: '1 1 340px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{u.name}</h4>
+                          {u.spaceName && <span className="user-space-tag">🏢 {u.spaceName}</span>}
+                          <span className={`my-spot-badge ${sub.badgeClass}`} style={{ fontSize: '0.72rem' }}>
+                            {sub.statusLabel}
+                          </span>
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.6rem' }}>
+                          <span>📧 {u.email}</span> • <span>📞 {u.phone}</span>
+                        </div>
+                        <div style={{
+                          background: 'rgba(245, 158, 11, 0.1)',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          borderRadius: '10px',
+                          padding: '0.7rem 0.95rem',
+                          fontSize: '0.86rem'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                              Formule demandée : <strong>{isPack2 ? '⭐ Pack 02 Flex Pro' : '📦 Pack 01 Visibilité Directe'}</strong>
+                            </div>
+                            <span style={{ fontWeight: 800, color: '#f59e0b', fontSize: '1rem' }}>
+                              Montant à vérifier : {isPack2 ? '120 DT' : '70 DT'}
+                            </span>
+                          </div>
+                          <div style={{ marginTop: '0.4rem', color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.4 }}>
+                            <span>Mode prévu : <strong style={{ color: '#fff' }}>{req.paymentMethod || 'Virement / Espèces'}</strong></span>
+                            {req.note && <span> • Référence/Note : <em style={{ color: '#fde68a' }}>"{req.note}"</em></span>}
+                            <span> • Soumis le : {dateStr}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minWidth: '220px' }}>
+                        <button
+                          className="btn-reserve-large btn-magic"
+                          style={{
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            padding: '0.65rem 1rem',
+                            fontSize: '0.86rem',
+                            fontWeight: 700,
+                            width: '100%'
+                          }}
+                          onClick={() => onApproveRenewal(u.email, req.requestedPack)}
+                        >
+                          ✅ Valider Paiement & Activer (1 an)
+                        </button>
+                        <button
+                          className="btn-admin-action btn-delete"
+                          style={{
+                            padding: '0.55rem 1rem',
+                            fontSize: '0.82rem',
+                            width: '100%',
+                            textAlign: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            borderColor: '#ef4444',
+                            color: '#ef4444'
+                          }}
+                          onClick={() => {
+                            const reason = window.prompt("Motif du refus (optionnel) :", "Paiement non confirmé");
+                            if (reason !== null) {
+                              onRejectRenewal(u.email, reason);
+                            }
+                          }}
+                        >
+                          ❌ Refuser la Demande
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: Users & Managers */}
         {activeTab === 'users' && (
           <div className="admin-tab-content">
             <div className="admin-users-header">
@@ -219,6 +347,7 @@ export default function AdminModal({
                     <th>Téléphone</th>
                     <th>Rôle</th>
                     <th>Formule / Pack</th>
+                    <th>Validité Abonnement (1 an)</th>
                     <th>Droit de modification</th>
                     <th>Action</th>
                   </tr>
@@ -229,9 +358,11 @@ export default function AdminModal({
                     const isAdmin = u.role === 'admin';
                     const canEdit = u.canEdit || isAdmin;
                     const isPack2 = u.pack === 'pack_2' || (u.packPrice === 120);
+                    const sub = computeSubscription(u);
+                    const hasPendingRenewal = u.renewalRequest?.status === 'pending';
 
                     return (
-                      <tr key={userId}>
+                      <tr key={userId} style={hasPendingRenewal ? { background: 'rgba(245, 158, 11, 0.05)' } : {}}>
                         <td>
                           <div className="user-cell">
                             <strong>{u.name}</strong>
@@ -249,9 +380,44 @@ export default function AdminModal({
                           {isAdmin ? (
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>👑 Admin</span>
                           ) : (
-                            <span className={`my-spot-badge ${isPack2 ? 'approved' : 'pending'}`} style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}>
-                              {isPack2 ? '👑 Pack Pro (120 DT)' : '📦 Pack 01 (70 DT)'}
-                            </span>
+                            <div>
+                              <span className={`my-spot-badge ${isPack2 ? 'approved' : 'pending'}`} style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}>
+                                {isPack2 ? '👑 Pack Pro (120 DT)' : '📦 Pack 01 (70 DT)'}
+                              </span>
+                              {hasPendingRenewal && (
+                                <div style={{ marginTop: '4px' }}>
+                                  <span style={{
+                                    background: 'rgba(245, 158, 11, 0.2)',
+                                    color: '#f59e0b',
+                                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                                    borderRadius: '6px',
+                                    fontSize: '0.68rem',
+                                    padding: '2px 6px',
+                                    display: 'inline-block',
+                                    fontWeight: 700
+                                  }}>
+                                    ⏳ Demande: {u.renewalRequest.requestedPack === 'pack_2' ? 'Pro 120DT' : '01 70DT'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {isAdmin ? (
+                            <span style={{ fontSize: '0.8rem', color: '#10b981' }}>🟢 Permanent</span>
+                          ) : (
+                            <div style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <span className={`my-spot-badge ${sub.badgeClass}`} style={{ fontSize: '0.72rem', padding: '0.15rem 0.45rem', alignSelf: 'flex-start' }}>
+                                {sub.statusLabel}
+                              </span>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                Échéance: {sub.expiresDateStr}
+                              </span>
+                              <span style={{ color: sub.isSuspended ? '#ef4444' : 'var(--text-muted)', fontSize: '0.72rem' }}>
+                                Grâce (+7j): {sub.graceDateStr}
+                              </span>
+                            </div>
                           )}
                         </td>
                         <td>
@@ -263,12 +429,52 @@ export default function AdminModal({
                           {isAdmin ? (
                             <span className="admin-immutable">Accès complet</span>
                           ) : (
-                            <button
-                              className={`btn-access-toggle ${canEdit ? 'revoke' : 'grant'}`}
-                              onClick={() => onToggleCanEdit(userId, canEdit)}
-                            >
-                              {canEdit ? "Bloquer l'accès 🔒" : "Donner l'accès 🔓"}
-                            </button>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                              {hasPendingRenewal ? (
+                                <>
+                                  <button
+                                    className="btn-admin-action"
+                                    style={{ background: '#10b981', color: '#fff', padding: '0.3rem 0.55rem', fontSize: '0.72rem', fontWeight: 700 }}
+                                    title="Valider le paiement et activer pour 1 an"
+                                    onClick={() => onApproveRenewal(u.email, u.renewalRequest.requestedPack)}
+                                  >
+                                    ✅ Valider ({u.renewalRequest.requestedPack === 'pack_2' ? '120DT' : '70DT'})
+                                  </button>
+                                  <button
+                                    className="btn-admin-action btn-delete"
+                                    style={{ padding: '0.3rem 0.45rem', fontSize: '0.72rem' }}
+                                    title="Refuser la demande"
+                                    onClick={() => {
+                                      const reason = window.prompt("Motif du refus (optionnel) :", "Paiement non confirmé");
+                                      if (reason !== null) {
+                                        onRejectRenewal(u.email, reason);
+                                      }
+                                    }}
+                                  >
+                                    ❌ Refuser
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className={`btn-access-toggle ${canEdit ? 'revoke' : 'grant'}`}
+                                    onClick={() => onToggleCanEdit(userId, canEdit)}
+                                  >
+                                    {canEdit ? "Bloquer 🔒" : "Débloquer 🔓"}
+                                  </button>
+                                  {onRenewPackAdmin && (
+                                    <button
+                                      className="btn-admin-action"
+                                      style={{ padding: '0.3rem 0.5rem', fontSize: '0.72rem' }}
+                                      title="Renouveler directement pour 1 an"
+                                      onClick={() => onRenewPackAdmin(u.email)}
+                                    >
+                                      🔄 +1 an
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
