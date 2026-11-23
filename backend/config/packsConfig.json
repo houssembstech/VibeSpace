@@ -1,0 +1,39 @@
+{
+  "pack_1": {
+    "id": "pack_1",
+    "name": "Pack 01 · Visibilité Directe",
+    "shortName": "Pack 01 Visibilité",
+    "price": 70,
+    "durationMonths": 12,
+    "graceDays": 7,
+    "description": "Idéal pour lancer votre espace simplement avec une présence active.",
+    "features": [
+      "Publication d'un espace exclusif sur VibeSpace",
+      "Nom d'espace certifié & fixe (immuable)",
+      "Réservations directes sans intermédiaire (WhatsApp & Email)",
+      "0% de commission sur tous vos revenus",
+      "Abonnement renouvelable"
+    ],
+    "canEdit": false,
+    "isPremium": false
+  },
+  "pack_2": {
+    "id": "pack_2",
+    "name": "Pack 02 · Flex Pro & Contrôle",
+    "shortName": "Pack Flex Pro",
+    "price": 120,
+    "durationMonths": 12,
+    "graceDays": 7,
+    "description": "La solution complète avec mise en avant Premium et modifications illimitées.",
+    "features": [
+      "Tous les avantages du Pack 01 inclus",
+      "Mise en avant Premium : carrousel horizontal exclusif en tête d'accueil",
+      "Modifications & Mises à jour illimitées toute l'année",
+      "Changement de photos, tarifs (heure, ½ j, jour) & description",
+      "Ajustement des options, équipements et capacités",
+      "Réservations directes WhatsApp & Email"
+    ],
+    "canEdit": true,
+    "isPremium": true
+  }
+}

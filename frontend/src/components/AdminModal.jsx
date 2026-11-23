@@ -1,5 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { computeSubscription } from './MySpotsModal';
+
+export const isSpotMarkedPremium = (spot, usersList) => {
+  if (spot.isPremium === false || spot.isPremium === 'false') return false;
+  if (spot.isPremium === true || spot.isPremium === 'true') return true;
+  const hostUser = usersList?.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
+  return Boolean(hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120));
+};
 
 export default function AdminModal({
   isOpen,
@@ -9,15 +16,30 @@ export default function AdminModal({
   onUpdateSpotStatus,
   onDeleteSpot,
   onToggleSpotPremium,
+  onUpdateSpotRating,
+  onEditSpot,
   onToggleCanEdit,
   onCreateUser,
   onRenewPackAdmin,
   onApproveRenewal,
-  onRejectRenewal
+  onRejectRenewal,
+  packsConfig,
+  onSavePacksConfig
 }) {
-  const [activeTab, setActiveTab] = useState('spots'); // 'spots' | 'renewals' | 'users'
+  const [activeTab, setActiveTab] = useState('spots'); // 'spots' | 'renewals' | 'users' | 'packs'
   const [spotsFilter, setSpotsFilter] = useState('all'); // 'all' | 'pending' | 'approved'
   const [showCreateUser, setShowCreateUser] = useState(false);
+
+  const [editingPacks, setEditingPacks] = useState(() => packsConfig || {
+    pack_1: { name: 'Pack 01 · Visibilité Directe', price: 70, durationMonths: 12, graceDays: 7, description: 'Idéal pour lancer votre espace simplement avec une présence active.' },
+    pack_2: { name: 'Pack 02 · Flex Pro & Contrôle', price: 120, durationMonths: 12, graceDays: 7, description: 'La solution complète avec mise en avant Premium et modifications illimitées.' }
+  });
+
+  useEffect(() => {
+    if (packsConfig) {
+      setEditingPacks(packsConfig);
+    }
+  }, [packsConfig]);
 
   // New user form state
   const [newName, setNewName] = useState('');
@@ -109,6 +131,12 @@ export default function AdminModal({
           >
             👥 Responsables d'espace & Comptes ({usersList.length})
           </button>
+          <button
+            className={`admin-nav-tab ${activeTab === 'packs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('packs')}
+          >
+            ⚙️ Packs & Tarifs ({editingPacks?.pack_1?.price || 70}DT / {editingPacks?.pack_2?.price || 120}DT)
+          </button>
         </div>
 
         {/* TAB 1: Spots Requests */}
@@ -146,9 +174,7 @@ export default function AdminModal({
                 displayedSpots.map(spot => {
                   const isPending = spot.status === 'pending';
                   const isApproved = !spot.status || spot.status === 'approved';
-                  const hostUser = usersList?.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
-                  const isHostPack2 = hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120);
-                  const isSpotPremium = Boolean(spot.isPremium !== undefined ? spot.isPremium : isHostPack2);
+                  const isSpotPremium = isSpotMarkedPremium(spot, usersList);
 
                   return (
                     <div key={spot.id || spot._id} className="admin-spot-card">
@@ -170,7 +196,7 @@ export default function AdminModal({
                               boxShadow: '0 2px 6px rgba(245, 158, 11, 0.4)'
                             }}
                           >
-                            👑 Premium (120 DT)
+                            👑 Premium ({editingPacks?.pack_2?.price || 120} DT)
                           </span>
                         )}
                       </div>
@@ -195,6 +221,32 @@ export default function AdminModal({
                           {spot.hostPhone && <span>📞 Tél : {spot.hostPhone}</span>}
                           {spot.hostWhatsapp && <span>💬 WA : {spot.hostWhatsapp}</span>}
                         </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.88rem', color: '#fbbf24', fontWeight: '700' }}>
+                            ★ {spot.rating !== undefined ? spot.rating : '5.0'} / 5.0
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = spot.rating !== undefined ? spot.rating : 5.0;
+                              const val = prompt(`Définir l'évaluation de "${spot.title}" (note de 1.0 à 5.0 étoiles) :`, current);
+                              if (val !== null) {
+                                const num = parseFloat(val);
+                                if (!isNaN(num) && num >= 1.0 && num <= 5.0) {
+                                  onUpdateSpotRating && onUpdateSpotRating(spot.id || spot._id, num);
+                                } else {
+                                  alert("Veuillez saisir un nombre valide entre 1.0 et 5.0 (ex: 4.8)");
+                                }
+                              }
+                            }}
+                            className="btn-admin-action"
+                            style={{ padding: '0.18rem 0.55rem', fontSize: '0.75rem', background: 'rgba(251, 191, 36, 0.15)', borderColor: '#fbbf24', color: '#fbbf24', cursor: 'pointer' }}
+                            title="Modifier la note du spot (étoiles)"
+                          >
+                            ⭐ Modifier note
+                          </button>
+                        </div>
                       </div>
 
                       <div className="admin-spot-actions">
@@ -211,10 +263,21 @@ export default function AdminModal({
                             borderColor: 'rgba(255, 255, 255, 0.2)',
                             color: '#e2e8f0'
                           }}
-                          title={isSpotPremium ? "Retirer de la sélection Premium (Carrousel)" : "Mettre en avant dans la sélection Premium (Carrousel 120 DT)"}
+                          title={isSpotPremium ? "Retirer de la sélection Premium (Carrousel)" : "Mettre en avant dans la sélection Premium (Carrousel)"}
                         >
                           {isSpotPremium ? '★ Retirer Premium' : '👑 Passer en Premium'}
                         </button>
+
+                        {onEditSpot && (
+                          <button
+                            className="btn-admin-action"
+                            onClick={() => onEditSpot(spot)}
+                            title="Modifier la fiche complète (tarifs, public, services, photos...)"
+                            style={{ background: 'rgba(0, 242, 254, 0.12)', borderColor: 'rgba(0, 242, 254, 0.4)', color: 'var(--accent-1, #00f2fe)' }}
+                          >
+                            ✏️ Modifier
+                          </button>
+                        )}
 
                         {isPending ? (
                           <button
@@ -630,6 +693,170 @@ export default function AdminModal({
                 </button>
               </form>
             </div>
+          </div>
+        )}
+
+        {/* TAB 4: Dynamic Packs & Fees Configuration */}
+        {activeTab === 'packs' && (
+          <div className="admin-tab-content">
+            <div className="admin-users-header">
+              <div>
+                <h3>⚙️ Gestion Dynamique des Tarifs & Durées des Packs</h3>
+                <p>Ajustez les frais d'abonnement (prix en DT), la durée de validité (en mois) et le délai de grâce. Les modifications s'appliquent immédiatement pour toutes les inscriptions et renouvellements.</p>
+              </div>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              onSavePacksConfig && onSavePacksConfig(editingPacks);
+              alert("Tarifs et durées des packs enregistrés avec succès ! 🎉");
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                {/* PACK 1 CONFIG */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1.5px solid rgba(255, 255, 255, 0.12)', borderRadius: '14px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0, color: 'var(--accent-1, #00f2fe)', fontSize: '1.1rem' }}>📦 Pack 01 (Visibilité Directe)</h4>
+                    <span style={{ fontSize: '0.8rem', background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-1, #00f2fe)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Standard</span>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Nom complet du Pack</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingPacks?.pack_1?.name || ''}
+                      onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_1: { ...prev.pack_1, name: e.target.value } }))}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                    <div className="auth-field">
+                      <label>Frais / Tarif (DT) *</label>
+                      <div className="val-input-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={editingPacks?.pack_1?.price !== undefined ? editingPacks.pack_1.price : 70}
+                          onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_1: { ...prev.pack_1, price: Math.max(0, parseFloat(e.target.value) || 0) } }))}
+                        />
+                        <span className="val-unit">DT</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-field">
+                      <label>Durée d'abonnement (Mois) *</label>
+                      <div className="val-input-wrapper">
+                        <input
+                          type="number"
+                          min="1"
+                          required
+                          value={editingPacks?.pack_1?.durationMonths !== undefined ? editingPacks.pack_1.durationMonths : 12}
+                          onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_1: { ...prev.pack_1, durationMonths: Math.max(1, parseInt(e.target.value) || 12) } }))}
+                        />
+                        <span className="val-unit">Mois</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Délai de grâce après expiration (Jours)</label>
+                    <div className="val-input-wrapper">
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingPacks?.pack_1?.graceDays !== undefined ? editingPacks.pack_1.graceDays : 7}
+                        onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_1: { ...prev.pack_1, graceDays: Math.max(0, parseInt(e.target.value) || 0) } }))}
+                      />
+                      <span className="val-unit">Jours</span>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Description du Pack</label>
+                    <textarea
+                      rows="2"
+                      value={editingPacks?.pack_1?.description || ''}
+                      onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_1: { ...prev.pack_1, description: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+
+                {/* PACK 2 CONFIG */}
+                <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1.5px solid rgba(245, 158, 11, 0.35)', borderRadius: '14px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0, color: '#fbbf24', fontSize: '1.1rem' }}>👑 Pack 02 (Flex Pro & Premium)</h4>
+                    <span style={{ fontSize: '0.8rem', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Pro ⭐</span>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Nom complet du Pack</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingPacks?.pack_2?.name || ''}
+                      onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_2: { ...prev.pack_2, name: e.target.value } }))}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                    <div className="auth-field">
+                      <label>Frais / Tarif (DT) *</label>
+                      <div className="val-input-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={editingPacks?.pack_2?.price !== undefined ? editingPacks.pack_2.price : 120}
+                          onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_2: { ...prev.pack_2, price: Math.max(0, parseFloat(e.target.value) || 0) } }))}
+                        />
+                        <span className="val-unit">DT</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-field">
+                      <label>Durée d'abonnement (Mois) *</label>
+                      <div className="val-input-wrapper">
+                        <input
+                          type="number"
+                          min="1"
+                          required
+                          value={editingPacks?.pack_2?.durationMonths !== undefined ? editingPacks.pack_2.durationMonths : 12}
+                          onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_2: { ...prev.pack_2, durationMonths: Math.max(1, parseInt(e.target.value) || 12) } }))}
+                        />
+                        <span className="val-unit">Mois</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Délai de grâce après expiration (Jours)</label>
+                    <div className="val-input-wrapper">
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingPacks?.pack_2?.graceDays !== undefined ? editingPacks.pack_2.graceDays : 7}
+                        onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_2: { ...prev.pack_2, graceDays: Math.max(0, parseInt(e.target.value) || 0) } }))}
+                      />
+                      <span className="val-unit">Jours</span>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Description du Pack</label>
+                    <textarea
+                      rows="2"
+                      value={editingPacks?.pack_2?.description || ''}
+                      onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_2: { ...prev.pack_2, description: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-reserve-large full-width btn-magic" style={{ padding: '0.85rem' }}>
+                💾 Enregistrer les Tarifs & Durées des Packs
+              </button>
+            </form>
           </div>
         )}
       </div>

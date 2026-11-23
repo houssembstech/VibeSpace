@@ -92,12 +92,20 @@ export default function MySpotsModal({
   onAddNewSpot,
   onDeleteSpot,
   onOpenRenewModal,
-  onSimulatePackDate
+  onSimulatePackDate,
+  packsConfig
 }) {
   const [simulationLoading, setSimulationLoading] = useState(false);
   const [simMessage, setSimMessage] = useState('');
 
   if (!isOpen || !currentUser) return null;
+
+  const p1Price = packsConfig?.pack_1?.price ?? 70;
+  const p2Price = packsConfig?.pack_2?.price ?? 120;
+  const p1Duration = packsConfig?.pack_1?.durationMonths ?? 12;
+  const p2Duration = packsConfig?.pack_2?.durationMonths ?? 12;
+  const p1Name = packsConfig?.pack_1?.name || 'Pack 01 Visibilité';
+  const p2Name = packsConfig?.pack_2?.name || 'Pack 02 Flex Pro';
 
   const isAdmin = currentUser.role === 'admin';
   const mySpots = spotsList.filter(s => {
@@ -162,9 +170,9 @@ export default function MySpotsModal({
                   ⏳ <span>DEMANDE DE RENOUVELLEMENT EN ATTENTE DE L'ADMINISTRATEUR</span>
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.86rem', color: '#fff', lineHeight: 1.45 }}>
-                  Vous avez sollicité le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? '⭐ Pack 02 Flex Pro (120 DT)' : '📦 Pack 01 Visibilité (70 DT)'}</strong>
+                  Vous avez sollicité le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? `⭐ ${p2Name} (${p2Price} DT)` : `📦 ${p1Name} (${p1Price} DT)`}</strong>
                   {currentUser.renewalRequest.requestedAt && ` le ${new Date(currentUser.renewalRequest.requestedAt).toLocaleDateString('fr-FR')}`}. 
-                  L'administrateur procède actuellement à la vérification de votre paiement. Dès validation, votre pack sera actif pour 1 an et vos espaces réactivés.
+                  L'administrateur procède actuellement à la vérification de votre paiement. Dès validation, votre pack sera actif pour {currentUser.renewalRequest.requestedPack === 'pack_2' ? `${p2Duration} mois` : `${p1Duration} mois`} et vos espaces réactivés.
                 </p>
               </div>
               {onOpenRenewModal && (
@@ -306,18 +314,18 @@ export default function MySpotsModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem', fontSize: '0.85rem' }}>
             <div>
               <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Formule souscrite :</span>
-              <strong>{currentUser.pack === 'pack_2' ? '⭐ Pack 02 Flex Pro (120 DT)' : '📦 Pack 01 Visibilité (70 DT)'}</strong>
+              <strong>{currentUser.pack === 'pack_2' ? `⭐ ${p2Name} (${p2Price} DT)` : `📦 ${p1Name} (${p1Price} DT)`}</strong>
             </div>
             <div>
               <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Date de souscription :</span>
               <strong>{sub.purchasedDateStr}</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Échéance (1 an) :</span>
+              <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Échéance :</span>
               <strong style={{ color: sub.isGrace || sub.isSuspended ? '#ef4444' : 'var(--accent-1)' }}>{sub.expiresDateStr}</strong>
             </div>
             <div>
-              <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Limite période de grâce (+7j) :</span>
+              <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Limite période de grâce :</span>
               <strong style={{ color: sub.isSuspended ? '#ef4444' : 'var(--text-secondary)' }}>{sub.graceDateStr}</strong>
             </div>
           </div>
@@ -329,25 +337,25 @@ export default function MySpotsModal({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>
               <div>
                 <p style={{ margin: 0 }}>
-                  👑 <strong>Pack Flex Pro (120 DT/an) · Modifications illimitées & Carrousel Premium actifs</strong>
+                  👑 <strong>{p2Name} ({p2Price} DT/{p2Duration >= 12 ? 'an' : `${p2Duration}m`}) · Modifications illimitées & Carrousel Premium actifs</strong>
                 </p>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
                   Votre espace bénéficie de la mise en avant dans le carrousel horizontal Premium en tête de page, et vous pouvez modifier photos, tarifs, équipements, capacités et descriptions à tout moment. (Le nom de l'espace reste certifié 🔒).
                 </p>
               </div>
-              <span className="my-spot-badge approved" style={{ alignSelf: 'flex-start' }}>👑 Pack Pro (120 DT)</span>
+              <span className="my-spot-badge approved" style={{ alignSelf: 'flex-start' }}>👑 {p2Name} ({p2Price} DT)</span>
             </div>
           ) : (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>
               <div>
                 <p style={{ margin: 0 }}>
-                  📦 <strong>Pack 01 Visibilité Directe (70 DT/an) · Fiche Fixe</strong>
+                  📦 <strong>{p1Name} ({p1Price} DT/{p1Duration >= 12 ? 'an' : `${p1Duration}m`}) · Fiche Fixe</strong>
                 </p>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
-                  Votre espace est en ligne et reçoit 100% des réservations sans intermédiaire. La modification des fiches est réservée au <strong>Pack Flex Pro (120 DT/an)</strong>.
+                  Votre espace est en ligne et reçoit 100% des réservations sans intermédiaire. La modification des fiches est réservée au <strong>{p2Name} ({p2Price} DT)</strong>.
                 </p>
               </div>
-              <span className="my-spot-badge pending" style={{ alignSelf: 'flex-start' }}>📦 Pack 01 (70 DT)</span>
+              <span className="my-spot-badge pending" style={{ alignSelf: 'flex-start' }}>📦 {p1Name} ({p1Price} DT)</span>
             </div>
           )}
         </div>

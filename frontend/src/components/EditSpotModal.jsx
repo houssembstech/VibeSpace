@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 const COURSES_CATEGORIES = ['✨ Célébrer', '🌿 Se détendre', '📸 Shooting', '🎬 Regarder', '🎮 Jouer', '⛺ Camping'];
+const AUDIENCE_OPTIONS = ['Famille', 'Couple', 'Adultes (+18)', 'Enfants', 'Animaux (Chien/Chat)'];
 
 export default function EditSpotModal({
   spot,
@@ -29,6 +30,7 @@ export default function EditSpotModal({
   const [includedGuests, setIncludedGuests] = useState(spot.includedGuests || spot.capacity || spot.maxCapacity || 10);
   const [isUnlimitedCapacity, setIsUnlimitedCapacity] = useState(Boolean(spot.isUnlimitedCapacity));
   const [isPremium, setIsPremium] = useState(Boolean(spot.isPremium));
+  const [rating, setRating] = useState(spot.rating !== undefined ? spot.rating : 5.0);
   const [maxCapacity, setMaxCapacity] = useState(spot.maxCapacity && spot.maxCapacity < 9000 ? spot.maxCapacity : (spot.capacity || 10));
   const [extraGuestPrice, setExtraGuestPrice] = useState(spot.extraGuestPrice || 0);
   const [hostEmail, setHostEmail] = useState(spot.hostEmail || '');
@@ -37,9 +39,51 @@ export default function EditSpotModal({
   const [newFiles, setNewFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Addons setup
-  const initialAddons = spot.addons || addonsList || [];
-  const [configuredAddons, setConfiguredAddons] = useState(initialAddons);
+  // Audiences (Qui peut venir)
+  const [allowedAudiences, setAllowedAudiences] = useState(() => {
+    if (spot.allowedAudiences && Array.isArray(spot.allowedAudiences) && spot.allowedAudiences.length > 0) {
+      return spot.allowedAudiences;
+    }
+    return ['Famille', 'Couple', 'Adultes (+18)'];
+  });
+  const [animalFee, setAnimalFee] = useState(spot.animalFee !== undefined ? spot.animalFee : 13);
+
+  const toggleAudience = (aud) => {
+    if (allowedAudiences.includes(aud)) {
+      setAllowedAudiences(allowedAudiences.filter(a => a !== aud));
+    } else {
+      setAllowedAudiences([...allowedAudiences, aud]);
+    }
+  };
+
+  // Addons setup (Ajoutez une touche personnelle)
+  const [activeAddons, setActiveAddons] = useState(() => {
+    const map = {};
+    const baseList = addonsList || [];
+    baseList.forEach(a => {
+      const existing = (spot.addons || []).find(sa => sa.id === a.id);
+      map[a.id] = {
+        enabled: Boolean(existing),
+        price: existing ? existing.price : a.price,
+        name: a.name
+      };
+    });
+    return map;
+  });
+
+  const toggleAddon = (id) => {
+    setActiveAddons(prev => ({
+      ...prev,
+      [id]: { ...prev[id], enabled: !prev[id]?.enabled }
+    }));
+  };
+
+  const updateAddonPrice = (id, newPrice) => {
+    setActiveAddons(prev => ({
+      ...prev,
+      [id]: { ...prev[id], price: Math.max(0, parseFloat(newPrice) || 0) }
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +95,14 @@ export default function EditSpotModal({
     const effectivePriceFullDay = Number(priceFullDay || 0);
     const effectivePricePerHour = Number(pricePerHour || 0);
     const mainPrice = pricingType === 'day' ? (effectivePriceFullDay || effectivePricePerHour) : (effectivePricePerHour || effectivePriceFullDay);
+
+    const finalAddons = (addonsList || [])
+      .filter(a => activeAddons[a.id]?.enabled)
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        price: Number(activeAddons[a.id]?.price || a.price)
+      }));
 
     const updatedData = {
       ...spot,
@@ -72,7 +124,10 @@ export default function EditSpotModal({
       hostPhone,
       hostWhatsapp,
       isPremium,
-      addons: configuredAddons
+      rating: Math.min(5.0, Math.max(1.0, parseFloat(rating) || 5.0)),
+      allowedAudiences,
+      animalFee: Number(animalFee || 13),
+      addons: finalAddons
     };
 
     try {
@@ -88,16 +143,16 @@ export default function EditSpotModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content host-modal-box edit-modal-box" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content host-modal-box edit-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '820px', maxHeight: '92vh', overflowY: 'auto' }}>
         <button className="modal-close" onClick={onClose}>✕</button>
 
         <div className="modal-header-section">
           <h2>✏️ Modifier l'Espace</h2>
-          <p>Mettez à jour les photos, coordonnées, description et services de votre spot.</p>
+          <p>Mettez à jour les photos, coordonnées, tarifs, public autorisé, touches personnelles et services de votre spot.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="host-flow-form">
-          {/* Identité */}
+          {/* Section 1: Informations Générales */}
           <div className="host-section">
             <h3><span className="step-num">1</span> Informations Générales</h3>
             <div className="host-grid">
@@ -112,7 +167,7 @@ export default function EditSpotModal({
                   title="Le nom de l'espace est certifié et ne peut pas être modifié."
                   style={{ opacity: 0.75, cursor: 'not-allowed', background: 'rgba(255, 255, 255, 0.05)' }}
                 />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🔒 Le nom de votre espace a été fixé lors de votre inscription et reste immuable.</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>🔒 Le nom de votre espace est certifié et reste immuable.</span>
               </div>
               <div className="bb-col">
                 <label>ADRESSE COMPLÈTE *</label>
@@ -125,35 +180,52 @@ export default function EditSpotModal({
               </div>
             </div>
 
-            <div className="bb-col mt-input">
-              <label>CATÉGORIE *</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="category-select"
-              >
-                {COURSES_CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+            <div className="host-grid-3 mt-input">
+              <div className="bb-col">
+                <label>CATÉGORIE *</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="category-select"
+                >
+                  {COURSES_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="bb-col mt-input">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', padding: '0.75rem 1rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '10px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={isPremium} 
-                  onChange={(e) => setIsPremium(e.target.checked)} 
-                  style={{ width: '18px', height: '18px', accentColor: '#f59e0b', cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: '0.88rem', color: '#fbbf24', fontWeight: '600' }}>
-                  👑 Mettre en avant dans la sélection Premium (Carrousel horizontal 120 DT)
-                </span>
-              </label>
+              <div className="bb-col">
+                <label>ÉVALUATION / NOTE (★ 1.0 à 5.0)</label>
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1.0"
+                    max="5.0"
+                    value={rating}
+                    onChange={(e) => setRating(e.target.value)}
+                  />
+                  <span className="val-unit">★</span>
+                </div>
+              </div>
+
+              <div className="bb-col" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', padding: '0.65rem 0.9rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '10px', width: '100%', boxSizing: 'border-box' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={isPremium} 
+                    onChange={(e) => setIsPremium(e.target.checked)} 
+                    style={{ width: '18px', height: '18px', accentColor: '#f59e0b', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', color: '#fbbf24', fontWeight: '700' }}>
+                    👑 Sélection Premium (Carrousel)
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Coordonnées */}
+          {/* Section 2: Coordonnées de Contact */}
           <div className="host-section">
             <h3><span className="step-num">2</span> Coordonnées de Contact</h3>
             <div className="host-grid-3">
@@ -164,7 +236,6 @@ export default function EditSpotModal({
                   required
                   value={hostEmail}
                   onChange={(e) => setHostEmail(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px' }}
                 />
               </div>
               <div className="bb-col">
@@ -174,7 +245,6 @@ export default function EditSpotModal({
                   required
                   value={hostPhone}
                   onChange={(e) => setHostPhone(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px' }}
                 />
               </div>
               <div className="bb-col">
@@ -183,13 +253,12 @@ export default function EditSpotModal({
                   type="tel"
                   value={hostWhatsapp}
                   onChange={(e) => setHostWhatsapp(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.8rem', borderRadius: '8px' }}
                 />
               </div>
             </div>
           </div>
 
-          {/* Tarification & Capacité */}
+          {/* Section 3: Tarification & Capacité */}
           <div className="host-section">
             <h3><span className="step-num">3</span> Tarifs & Capacité</h3>
 
@@ -239,11 +308,6 @@ export default function EditSpotModal({
                   📅 Par Jour (DT/j)
                 </button>
               </div>
-              <span style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '6px', display: 'block' }}>
-                {pricingType === 'day'
-                  ? "💡 Cet espace fonctionne par jour. La carte affichera le tarif en DT/j (ou DT/jour) au lieu de DT/h."
-                  : "💡 Cet espace fonctionne par heure. La carte affichera le tarif en DT/h."}
-              </span>
             </div>
 
             <div className="host-grid-3">
@@ -251,51 +315,64 @@ export default function EditSpotModal({
                 <label>
                   {pricingType === 'day' ? 'PRIX / HEURE (OPTIONNEL)' : 'PRIX / HEURE (DT) *'}
                 </label>
-                <input
-                  type="number"
-                  required={pricingType === 'hour'}
-                  min={pricingType === 'hour' ? '1' : '0'}
-                  placeholder={pricingType === 'day' ? 'Optionnel' : 'Ex: 60'}
-                  value={pricePerHour}
-                  onChange={(e) => setPricePerHour(e.target.value)}
-                />
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    required={pricingType === 'hour'}
+                    min={pricingType === 'hour' ? '1' : '0'}
+                    placeholder={pricingType === 'day' ? 'Optionnel' : 'Ex: 60'}
+                    value={pricePerHour}
+                    onChange={(e) => setPricePerHour(e.target.value)}
+                  />
+                  <span className="val-unit">DT</span>
+                </div>
               </div>
               <div className="bb-col">
                 <label>DEMI-JOURNÉE (DT)</label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Ex: 150"
-                  value={priceHalfDay}
-                  onChange={(e) => setPriceHalfDay(e.target.value)}
-                />
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Ex: 150"
+                    value={priceHalfDay}
+                    onChange={(e) => setPriceHalfDay(e.target.value)}
+                  />
+                  <span className="val-unit">DT</span>
+                </div>
               </div>
               <div className="bb-col">
                 <label>
                   {pricingType === 'day' ? 'PRIX / JOURNÉE (DT) *' : 'JOURNÉE (DT)'}
                 </label>
-                <input
-                  type="number"
-                  required={pricingType === 'day'}
-                  min={pricingType === 'day' ? '1' : '0'}
-                  placeholder="Ex: 280"
-                  value={priceFullDay}
-                  onChange={(e) => setPriceFullDay(e.target.value)}
-                />
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    required={pricingType === 'day'}
+                    min={pricingType === 'day' ? '1' : '0'}
+                    placeholder="Ex: 280"
+                    value={priceFullDay}
+                    onChange={(e) => setPriceFullDay(e.target.value)}
+                  />
+                  <span className="val-unit">DT</span>
+                </div>
               </div>
             </div>
+
             <div className="host-grid mt-input">
               <div className="bb-col">
                 <label>CAPACITÉ DU PACK (PERSONNES INCLUSES) *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={includedGuests}
-                  onChange={(e) => setIncludedGuests(e.target.value)}
-                />
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={includedGuests}
+                    onChange={(e) => setIncludedGuests(e.target.value)}
+                  />
+                  <span className="val-unit">Pers</span>
+                </div>
                 <span className="sub-hint" style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>
-                  Invités inclus dans le tarif de base (sans aucun supplément)
+                  Invités inclus dans le tarif de base sans aucun supplément
                 </span>
               </div>
 
@@ -311,19 +388,19 @@ export default function EditSpotModal({
                     <span>♾️ Illimitée</span>
                   </label>
                 </div>
-                <input
-                  type="number"
-                  disabled={isUnlimitedCapacity}
-                  required={!isUnlimitedCapacity}
-                  min={includedGuests || 1}
-                  value={isUnlimitedCapacity ? '' : maxCapacity}
-                  placeholder={isUnlimitedCapacity ? '♾️ Capacité illimitée' : 'Ex: 30'}
-                  onChange={(e) => setMaxCapacity(e.target.value)}
-                  style={{ opacity: isUnlimitedCapacity ? 0.6 : 1 }}
-                />
-                <span className="sub-hint" style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>
-                  {isUnlimitedCapacity ? 'Aucune limite maximale de personnes' : 'Limite absolue (doit être ≥ capacité du pack)'}
-                </span>
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    disabled={isUnlimitedCapacity}
+                    required={!isUnlimitedCapacity}
+                    min={includedGuests || 1}
+                    value={isUnlimitedCapacity ? '' : maxCapacity}
+                    placeholder={isUnlimitedCapacity ? '♾️ Capacité illimitée' : 'Ex: 30'}
+                    onChange={(e) => setMaxCapacity(e.target.value)}
+                    style={{ opacity: isUnlimitedCapacity ? 0.6 : 1 }}
+                  />
+                  <span className="val-unit">Pers</span>
+                </div>
               </div>
             </div>
 
@@ -339,15 +416,134 @@ export default function EditSpotModal({
                 />
                 <span className="val-unit">DT / invité</span>
               </div>
-              <span className="sub-hint" style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '4px' }}>
-                Supplément facturé uniquement si le nombre de personnes dépasse le pack
-              </span>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Section 4: Qui peut venir ? (Public Autorisé) */}
           <div className="host-section">
-            <h3><span className="step-num">4</span> Description Détaillée</h3>
+            <h3><span className="step-num">4</span> Qui peut venir ? (Public Cible Autorisé)</h3>
+            <p className="sm-info mb-info" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.9rem' }}>
+              Sélectionnez les publics acceptés dans votre espace.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+              {AUDIENCE_OPTIONS.map(aud => {
+                const isSelected = allowedAudiences.includes(aud);
+                return (
+                  <label
+                    key={aud}
+                    onClick={() => toggleAudience(aud)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.6rem 1rem',
+                      borderRadius: '10px',
+                      border: isSelected ? '1.5px solid var(--accent-1, #00f2fe)' : '1px solid rgba(255,255,255,0.15)',
+                      background: isSelected ? 'rgba(0, 242, 254, 0.12)' : 'rgba(255,255,255,0.04)',
+                      color: isSelected ? '#fff' : '#cbd5e1',
+                      cursor: 'pointer',
+                      fontSize: '0.88rem',
+                      fontWeight: isSelected ? '600' : 'normal',
+                      userSelect: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}} // Controlled by label click
+                      style={{ accentColor: 'var(--accent-1, #00f2fe)', cursor: 'pointer' }}
+                    />
+                    <span>{aud}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {allowedAudiences.includes('Animaux (Chien/Chat)') && (
+              <div className="bb-col" style={{ maxWidth: '280px', marginTop: '0.5rem' }}>
+                <label>FRAIS POUR ANIMAUX (DT)</label>
+                <div className="val-input-wrapper">
+                  <input
+                    type="number"
+                    min="0"
+                    value={animalFee}
+                    onChange={(e) => setAnimalFee(e.target.value)}
+                    placeholder="13"
+                  />
+                  <span className="val-unit">DT</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 5: Services Optionnels Extras (Ajoutez une touche personnelle) */}
+          <div className="host-section">
+            <h3><span className="step-num">5</span> Ajoutez une touche personnelle (Services Optionnels)</h3>
+            <p className="sm-info mb-info" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.9rem' }}>
+              Activez les options proposées aux invités et ajustez votre tarif pour chacune.
+            </p>
+            <div className="host-addons-grid">
+              {(addonsList || []).map(addon => {
+                const current = activeAddons[addon.id] || { enabled: false, price: addon.price, name: addon.name };
+                return (
+                  <div key={addon.id} className={`host-addon-card ${current.enabled ? 'active' : ''}`} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: current.enabled ? 'rgba(0, 242, 254, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                    border: current.enabled ? '1.5px solid var(--accent-1, #00f2fe)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    gap: '0.8rem',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', flex: 1, margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={current.enabled}
+                        onChange={() => toggleAddon(addon.id)}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--accent-1, #00f2fe)', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '0.9rem', fontWeight: current.enabled ? 600 : 400, color: current.enabled ? '#fff' : '#cbd5e1' }}>
+                        {addon.name}
+                      </span>
+                    </label>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      opacity: current.enabled ? 1 : 0.4,
+                      pointerEvents: current.enabled ? 'auto' : 'none'
+                    }}>
+                      <input
+                        type="number"
+                        min="0"
+                        value={current.price}
+                        onChange={(e) => updateAddonPrice(addon.id, e.target.value)}
+                        style={{
+                          width: '72px',
+                          padding: '0.4rem 0.5rem',
+                          background: 'rgba(0,0,0,0.4)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          textAlign: 'right',
+                          fontSize: '0.88rem'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>DT</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 6: Description */}
+          <div className="host-section">
+            <h3><span className="step-num">6</span> Description Détaillée</h3>
             <div className="bb-col">
               <label>DESCRIPTION COMPLÈTE *</label>
               <textarea
@@ -360,9 +556,9 @@ export default function EditSpotModal({
             </div>
           </div>
 
-          {/* Photos */}
+          {/* Section 7: Photos */}
           <div className="host-section">
-            <h3><span className="step-num">5</span> Photos de l'espace</h3>
+            <h3><span className="step-num">7</span> Photos de l'espace</h3>
             <p className="sub-hint">Vous pouvez importer de nouvelles photos pour remplacer les actuelles (Max 5 photos).</p>
             <div className="file-drop-area">
               {newFiles.length > 0 ? (

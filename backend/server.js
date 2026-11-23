@@ -59,13 +59,85 @@ const ensureAdminAccount = async () => {
 };
 ensureAdminAccount();
 
-// Helper: Calculate 1-year pack expiration and 7-day grace period
-const calculatePackDates = (purchasedAtDate) => {
+const fs = require('fs');
+const path = require('path');
+
+const PACKS_CONFIG_FILE = path.join(__dirname, 'config', 'packsConfig.json');
+
+const DEFAULT_PACKS_CONFIG = {
+  pack_1: {
+    id: 'pack_1',
+    name: 'Pack 01 · Visibilité Directe',
+    shortName: 'Pack 01 Visibilité',
+    price: 70,
+    durationMonths: 12,
+    graceDays: 7,
+    description: 'Idéal pour lancer votre espace simplement avec une présence active.',
+    features: [
+      'Publication d\'un espace exclusif sur VibeSpace',
+      'Nom d\'espace certifié & fixe (immuable)',
+      'Réservations directes sans intermédiaire (WhatsApp & Email)',
+      '0% de commission sur tous vos revenus',
+      'Abonnement renouvelable'
+    ],
+    canEdit: false,
+    isPremium: false
+  },
+  pack_2: {
+    id: 'pack_2',
+    name: 'Pack 02 · Flex Pro & Contrôle',
+    shortName: 'Pack Flex Pro',
+    price: 120,
+    durationMonths: 12,
+    graceDays: 7,
+    description: 'La solution complète avec mise en avant Premium et modifications illimitées.',
+    features: [
+      'Tous les avantages du Pack 01 inclus',
+      'Mise en avant Premium : carrousel horizontal exclusif en tête d\'accueil',
+      'Modifications & Mises à jour illimitées toute l\'année',
+      'Changement de photos, tarifs (heure, ½ j, jour) & description',
+      'Ajustement des options, équipements et capacités',
+      'Réservations directes WhatsApp & Email'
+    ],
+    canEdit: true,
+    isPremium: true
+  }
+};
+
+const getPacksConfig = () => {
+  try {
+    if (fs.existsSync(PACKS_CONFIG_FILE)) {
+      const data = fs.readFileSync(PACKS_CONFIG_FILE, 'utf8');
+      return { ...DEFAULT_PACKS_CONFIG, ...JSON.parse(data) };
+    }
+  } catch (e) {
+    console.warn("Could not read packs config file:", e.message);
+  }
+  return DEFAULT_PACKS_CONFIG;
+};
+
+const savePacksConfig = (newConfig) => {
+  try {
+    fs.writeFileSync(PACKS_CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf8');
+  } catch (e) {
+    console.warn("Could not write packs config file:", e.message);
+  }
+};
+
+// Helper: Calculate dynamic pack expiration and grace period
+const calculatePackDates = (purchasedAtDate, packKey = 'pack_1') => {
+  const packs = getPacksConfig();
+  const pack = packs[packKey] || packs['pack_1'] || DEFAULT_PACKS_CONFIG.pack_1;
+  const durationMonths = Number(pack.durationMonths || 12);
+  const graceDays = Number(pack.graceDays !== undefined ? pack.graceDays : 7);
+
   const purchased = purchasedAtDate ? new Date(purchasedAtDate) : new Date();
   const expires = new Date(purchased);
-  expires.setFullYear(expires.getFullYear() + 1); // 1 an exact
+  expires.setMonth(expires.getMonth() + durationMonths);
+
   const grace = new Date(expires);
-  grace.setDate(grace.getDate() + 7); // 7 jours de grâce après l'an
+  grace.setDate(grace.getDate() + graceDays);
+
   return {
     packPurchasedAt: purchased,
     packExpiresAt: expires,
@@ -79,25 +151,23 @@ const getSubscriptionStatus = (user) => {
   const now = new Date();
 
   const purchased = user.packPurchasedAt ? new Date(user.packPurchasedAt) : (user.createdAt ? new Date(user.createdAt) : now);
-  const expiresAt = user.packExpiresAt 
-    ? new Date(user.packExpiresAt) 
-    : new Date(new Date(purchased).setFullYear(new Date(purchased).getFullYear() + 1));
-  const graceEndsAt = user.packGraceEndsAt 
-    ? new Date(user.packGraceEndsAt) 
-    : new Date(new Date(expiresAt).setDate(new Date(expiresAt).getDate() + 7));
+  const dates = calculatePackDates(purchased, user.pack || 'pack_1');
+  const expiresAt = user.packExpiresAt ? new Date(user.packExpiresAt) : dates.packExpiresAt;
+  const graceEndsAt = user.packGraceEndsAt ? new Date(user.packGraceEndsAt) : dates.packGraceEndsAt;
 
   if (now < expiresAt) {
     return 'active';
   } else if (now >= expiresAt && now < graceEndsAt) {
-    return 'expired_grace'; // Alerte 7 jours
+    return 'expired_grace'; // Alerte période de grâce
   } else {
-    return 'suspended'; // Masqué après 7 jours
+    return 'suspended'; // Masqué après période de grâce
   }
 };
 
 const formatUserResponse = (user) => {
   const raw = user.toObject ? user.toObject() : user;
-  const dates = calculatePackDates(raw.packPurchasedAt || raw.createdAt);
+  const packKey = raw.pack || 'pack_1';
+  const dates = calculatePackDates(raw.packPurchasedAt || raw.createdAt, packKey);
   const expiresAt = raw.packExpiresAt || dates.packExpiresAt;
   const graceEndsAt = raw.packGraceEndsAt || dates.packGraceEndsAt;
   const status = getSubscriptionStatus({
@@ -105,6 +175,10 @@ const formatUserResponse = (user) => {
     packExpiresAt: expiresAt,
     packGraceEndsAt: graceEndsAt
   });
+
+  const packs = getPacksConfig();
+  const configuredPack = packs[packKey] || DEFAULT_PACKS_CONFIG[packKey];
+  const dynamicPrice = configuredPack ? configuredPack.price : (raw.packPrice || (packKey === 'pack_2' ? 120 : 70));
 
   return {
     id: raw._id,
@@ -114,8 +188,8 @@ const formatUserResponse = (user) => {
     phone: raw.phone,
     role: raw.role,
     canEdit: raw.canEdit,
-    pack: raw.pack || 'pack_1',
-    packPrice: raw.packPrice || 70,
+    pack: packKey,
+    packPrice: raw.packPrice || dynamicPrice,
     packPurchasedAt: raw.packPurchasedAt || dates.packPurchasedAt,
     packExpiresAt: expiresAt,
     packGraceEndsAt: graceEndsAt,
@@ -269,16 +343,55 @@ app.patch('/api/spots/:id/premium', async (req, res) => {
   }
 });
 
+// PATCH Spot Rating (Admin evaluation: 1.0 to 5.0 stars)
+app.patch('/api/spots/:id/rating', async (req, res) => {
+  try {
+    const { rating } = req.body;
+    const parsed = Math.min(5.0, Math.max(1.0, parseFloat(rating) || 5.0));
+    const updated = await Spot.findByIdAndUpdate(
+      req.params.id,
+      { rating: parsed },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Spot introuvable' });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur mise à jour note', error: error.message });
+  }
+});
+
+// GET Dynamic Packs Configuration
+app.get('/api/packs-config', (req, res) => {
+  res.json(getPacksConfig());
+});
+
+// PUT Dynamic Packs Configuration (Admin only)
+app.put('/api/packs-config', (req, res) => {
+  try {
+    const updated = req.body;
+    if (!updated || typeof updated !== 'object') {
+      return res.status(400).json({ message: 'Configuration invalide' });
+    }
+    const current = getPacksConfig();
+    const merged = { ...current, ...updated };
+    savePacksConfig(merged);
+    res.json(merged);
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur sauvegarde packs config', error: err.message });
+  }
+});
+
 // PUT Spot Edit (For authorized manager or admin)
 app.put('/api/spots/:id', upload.array('images', 5), async (req, res) => {
   try {
     const spot = await Spot.findById(req.params.id);
     if (!spot) return res.status(404).json({ message: 'Spot introuvable' });
 
-    const { title, description, category, location, pricePerHour, priceHalfDay, priceFullDay, maxCapacity, isUnlimitedCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee, hostEmail, hostPhone, hostWhatsapp, pricingType, isPremium } = req.body;
+    const { title, description, category, location, pricePerHour, priceHalfDay, priceFullDay, maxCapacity, isUnlimitedCapacity, includedGuests, extraGuestPrice, idealFor, addons, allowedAudiences, animalFee, hostEmail, hostPhone, hostWhatsapp, pricingType, isPremium, rating } = req.body;
 
     if (pricingType) spot.pricingType = pricingType;
     if (isPremium !== undefined) spot.isPremium = isPremium === 'true' || isPremium === true;
+    if (rating !== undefined) spot.rating = Math.min(5.0, Math.max(1.0, parseFloat(rating) || 5.0));
     if (title) spot.title = title;
     if (description) spot.description = description;
     if (category) spot.category = category;
@@ -346,11 +459,13 @@ app.post('/api/auth/register', async (req, res) => {
     }
 
     const isAdmin = cleanEmail === 'houssembs.tech@gmail.com';
+    const packs = getPacksConfig();
     const chosenPack = pack === 'pack_2' ? 'pack_2' : 'pack_1';
-    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
-    const canEditAllowed = isAdmin ? true : (chosenPack === 'pack_2');
+    const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
+    const canEditAllowed = isAdmin ? true : (packConfig ? Boolean(packConfig.canEdit) : (chosenPack === 'pack_2'));
 
-    const dates = calculatePackDates(new Date());
+    const dates = calculatePackDates(new Date(), chosenPack);
 
     const newUser = new User({
       name,
@@ -549,12 +664,14 @@ app.post('/api/auth/approve-renewal', async (req, res) => {
     }
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
+    const packs = getPacksConfig();
     const targetPack = requestedPack || pack || user.renewalRequest?.requestedPack || user.pack || 'pack_1';
-    const packPrice = targetPack === 'pack_2' ? 120 : 70;
-    const canEdit = user.role === 'admin' ? true : (targetPack === 'pack_2');
+    const packConfig = packs[targetPack] || DEFAULT_PACKS_CONFIG[targetPack];
+    const packPrice = packConfig ? packConfig.price : (targetPack === 'pack_2' ? 120 : 70);
+    const canEdit = user.role === 'admin' ? true : (packConfig ? Boolean(packConfig.canEdit) : (targetPack === 'pack_2'));
 
-    // Official renewal: 1 year from now + 7 days grace
-    const dates = calculatePackDates(new Date());
+    // Official renewal: dynamic duration & grace
+    const dates = calculatePackDates(new Date(), targetPack);
     user.pack = targetPack;
     user.packPrice = packPrice;
     user.canEdit = canEdit;
@@ -619,12 +736,14 @@ app.post('/api/auth/renew-pack', async (req, res) => {
     const user = await User.findOne({ email: cleanEmail });
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
+    const packs = getPacksConfig();
     const chosenPack = pack || user.renewalRequest?.requestedPack || user.pack || 'pack_1';
-    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
-    const canEdit = user.role === 'admin' ? true : (chosenPack === 'pack_2');
+    const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
+    const canEdit = user.role === 'admin' ? true : (packConfig ? Boolean(packConfig.canEdit) : (chosenPack === 'pack_2'));
 
-    // Renewal: 1 year from now + 7 days grace
-    const dates = calculatePackDates(new Date());
+    // Renewal: dynamic duration & grace
+    const dates = calculatePackDates(new Date(), chosenPack);
     user.pack = chosenPack;
     user.packPrice = packPrice;
     user.canEdit = canEdit;

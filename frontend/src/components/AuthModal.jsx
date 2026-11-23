@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess, API_URL }) {
+export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess, API_URL, packsConfig }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [selectedPack, setSelectedPack] = useState('pack_2'); // 'pack_1' | 'pack_2'
   const [name, setName] = useState('');
@@ -10,6 +10,13 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const pack1Price = packsConfig?.pack_1?.price !== undefined ? packsConfig.pack_1.price : 70;
+  const pack2Price = packsConfig?.pack_2?.price !== undefined ? packsConfig.pack_2.price : 120;
+  const pack1Duration = packsConfig?.pack_1?.durationMonths ? `${packsConfig.pack_1.durationMonths} mois` : 'an';
+  const pack2Duration = packsConfig?.pack_2?.durationMonths ? `${packsConfig.pack_2.durationMonths} mois` : 'an';
+  const pack1Name = packsConfig?.pack_1?.name || 'Pack 01 · Visibilité Directe';
+  const pack2Name = packsConfig?.pack_2?.name || 'Pack 02 · Flex Pro & Contrôle';
 
   if (!isOpen) return null;
 
@@ -36,7 +43,7 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
         if (!res.ok) throw new Error(data.message || "Erreur lors de l'inscription");
         onLoginSuccess(data);
         onClose();
-        const packLabel = selectedPack === 'pack_2' ? 'Pack Flex Pro (120 DT/an)' : 'Pack 01 Visibilité Directe (70 DT/an)';
+        const packLabel = selectedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`;
         alert(`Bienvenue sur VibeSpace ! Ton compte Responsable pour "${spaceName}" a été créé avec succès avec le ${packLabel} 🏢✨.`);
       } catch (err) {
         // Fallback offline / local
@@ -50,12 +57,12 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
           phone,
           role: isAdmin ? 'admin' : 'responsable',
           pack: selectedPack,
-          packPrice: isPro ? 120 : 70,
+          packPrice: isPro ? pack2Price : pack1Price,
           canEdit: isAdmin ? true : isPro
         };
         onLoginSuccess(fallbackUser);
         onClose();
-        const packLabel = selectedPack === 'pack_2' ? 'Pack Flex Pro (120 DT/an)' : 'Pack 01 Visibilité Directe (70 DT/an)';
+        const packLabel = selectedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`;
         alert(`Bienvenue sur VibeSpace ! Ton compte Responsable pour "${spaceName}" a été créé avec succès (${packLabel}) 🏢✨.`);
       } finally {
         setLoading(false);
@@ -161,25 +168,25 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
                   onClick={() => setSelectedPack('pack_1')}
                 >
                   <div className="pack-card-header">
-                    <h4 className="pack-name">Pack 01 · Visibilité Directe</h4>
+                    <h4 className="pack-name">{pack1Name}</h4>
                   </div>
                   <div className="pack-price-tag">
-                    70 <span className="currency">DT</span> <span className="pack-period">/ an (renouvelable)</span>
+                    {pack1Price} <span className="currency">DT</span> <span className="pack-period">/ {pack1Duration} (renouvelable)</span>
                   </div>
-                  <p className="pack-subdesc">Idéal pour lancer votre espace simplement avec une présence active 365 jours.</p>
+                  <p className="pack-subdesc">Idéal pour lancer votre espace simplement avec une présence active.</p>
                   
                   <ul className="pack-features-list">
                     <li>✅ <strong>Publication d'un espace exclusif</strong> sur VibeSpace</li>
                     <li>🔒 <strong>Nom d'espace certifié & fixe</strong> (immuable)</li>
                     <li>💬 <strong>Réservations directes</strong> sans intermédiaire (WhatsApp & Email)</li>
                     <li>💰 <strong>0% de commission</strong> sur tous vos revenus</li>
-                    <li>📅 <strong>Abonnement valable 1 an</strong> (renouvelable)</li>
+                    <li>📅 <strong>Abonnement valable {pack1Duration}</strong> (renouvelable)</li>
                     <li className="warn-feature">⚠️ <em>Fiche fixe : informations non modifiables après publication</em></li>
                   </ul>
 
                   <div className="pack-radio-indicator">
                     <div className="pack-radio-circle"></div>
-                    <span>{selectedPack === 'pack_1' ? '✓ Pack Sélectionné (70 DT)' : 'Choisir le Pack 01'}</span>
+                    <span>{selectedPack === 'pack_1' ? `✓ Pack Sélectionné (${pack1Price} DT)` : 'Choisir le Pack 01'}</span>
                   </div>
                 </div>
 
@@ -190,10 +197,10 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
                 >
                   <div className="pack-badge-top">⭐ RECOMMANDÉ · LE PLUS POPULAIRE</div>
                   <div className="pack-card-header">
-                    <h4 className="pack-name">Pack 02 · Flex Pro & Contrôle</h4>
+                    <h4 className="pack-name">{pack2Name}</h4>
                   </div>
                   <div className="pack-price-tag pro">
-                    120 <span className="currency">DT</span> <span className="pack-period">/ an (renouvelable)</span>
+                    {pack2Price} <span className="currency">DT</span> <span className="pack-period">/ {pack2Duration} (renouvelable)</span>
                   </div>
                   <p className="pack-subdesc">La solution complète pour ajuster vos tarifs et maximiser votre taux d'occupation.</p>
                   
@@ -204,12 +211,12 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
                     <li>📸 <strong>Changement de photos, tarifs</strong> (heure, ½ j, jour) & description</li>
                     <li>⚙️ <strong>Ajustement des options, équipements</strong> et capacités</li>
                     <li>💬 <strong>Réservations directes WhatsApp</strong> & Email</li>
-                    <li>📅 <strong>Abonnement valable 1 an</strong> (renouvelable)</li>
+                    <li>📅 <strong>Abonnement valable {pack2Duration}</strong> (renouvelable)</li>
                   </ul>
 
                   <div className="pack-radio-indicator">
                     <div className="pack-radio-circle"></div>
-                    <span>{selectedPack === 'pack_2' ? '✓ Pack Pro Sélectionné (120 DT)' : 'Choisir le Pack Pro'}</span>
+                    <span>{selectedPack === 'pack_2' ? `✓ Pack Pro Sélectionné (${pack2Price} DT)` : 'Choisir le Pack Pro'}</span>
                   </div>
                 </div>
               </div>

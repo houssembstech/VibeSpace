@@ -5,7 +5,8 @@ export default function RenewPackModal({
   onClose,
   currentUser,
   onSuccessRenewRequest,
-  API_URL
+  API_URL,
+  packsConfig
 }) {
   const currentPending = currentUser?.renewalRequest?.status === 'pending';
   const initialPack = currentUser?.renewalRequest?.requestedPack || currentUser?.pack || 'pack_1';
@@ -16,6 +17,13 @@ export default function RenewPackModal({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const pack1Price = packsConfig?.pack_1?.price !== undefined ? packsConfig.pack_1.price : 70;
+  const pack2Price = packsConfig?.pack_2?.price !== undefined ? packsConfig.pack_2.price : 120;
+  const pack1Duration = packsConfig?.pack_1?.durationMonths ? `${packsConfig.pack_1.durationMonths} mois` : 'an';
+  const pack2Duration = packsConfig?.pack_2?.durationMonths ? `${packsConfig.pack_2.durationMonths} mois` : 'an';
+  const pack1Name = packsConfig?.pack_1?.name || 'Pack 01 · Visibilité Directe';
+  const pack2Name = packsConfig?.pack_2?.name || 'Pack 02 · Flex Pro & Contrôle';
 
   if (!isOpen || !currentUser) return null;
 
@@ -56,7 +64,7 @@ export default function RenewPackModal({
     }
   };
 
-  const selectedPrice = selectedPack === 'pack_2' ? 120 : 70;
+  const selectedPrice = selectedPack === 'pack_2' ? pack2Price : pack1Price;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -85,7 +93,7 @@ export default function RenewPackModal({
             color: '#fef3c7'
           }}>
             ⏳ <strong>Demande en cours d'examen :</strong> Vous avez déjà envoyé une demande pour le{' '}
-            <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? 'Pack Pro (120 DT)' : 'Pack 01 (70 DT)'}</strong>. 
+            <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`}</strong>. 
             L'administrateur vérifie le règlement. Vous pouvez ajuster votre choix ci-dessous si nécessaire.
           </div>
         )}
@@ -96,7 +104,7 @@ export default function RenewPackModal({
             <strong>Validation administrative requise après paiement</strong>
             <p>
               Pour garantir la conformité, le renouvellement est activé dès que l'administrateur 
-              valide la réception de votre règlement (<strong>70 DT</strong> pour Pack 01 ou <strong>120 DT</strong> pour Pack Pro).
+              valide la réception de votre règlement (<strong>{pack1Price} DT</strong> pour {pack1Name} ou <strong>{pack2Price} DT</strong> pour {pack2Name}).
             </p>
           </div>
         </div>
@@ -109,10 +117,10 @@ export default function RenewPackModal({
               onClick={() => setSelectedPack('pack_1')}
             >
               <div className="pack-card-header">
-                <h4 className="pack-name">Pack 01 · Visibilité Directe</h4>
+                <h4 className="pack-name">{pack1Name}</h4>
               </div>
               <div className="pack-price-tag">
-                70 <span className="currency">DT</span> <span className="pack-period">/ an</span>
+                {pack1Price} <span className="currency">DT</span> <span className="pack-period">/ {pack1Duration}</span>
               </div>
               <p className="pack-subdesc">L'essentiel pour être visible et recevoir les réservations sans commission.</p>
               
@@ -121,12 +129,12 @@ export default function RenewPackModal({
                 <li>💬 <strong>Réservations directes</strong> par WhatsApp & Email</li>
                 <li>💰 <strong>0% de commission</strong> sur tous vos gains</li>
                 <li>🔒 Fiche fixe certifiée</li>
-                <li>📅 <strong>Valable 1 an renouvelable</strong></li>
+                <li>📅 <strong>Valable {pack1Duration} renouvelable</strong></li>
               </ul>
 
               <div className="pack-radio-indicator">
                 <div className="pack-radio-circle"></div>
-                <span>{selectedPack === 'pack_1' ? '✓ Pack 01 Sélectionné' : 'Choisir Pack 01'}</span>
+                <span>{selectedPack === 'pack_1' ? `✓ ${pack1Name} Sélectionné` : `Choisir ${pack1Name}`}</span>
               </div>
             </div>
 
@@ -137,10 +145,10 @@ export default function RenewPackModal({
             >
               <div className="pack-badge-top">⭐ RECOMMANDÉ · FLEXIBILITÉ MAX</div>
               <div className="pack-card-header">
-                <h4 className="pack-name">Pack 02 · Flex Pro & Contrôle</h4>
+                <h4 className="pack-name">{pack2Name}</h4>
               </div>
               <div className="pack-price-tag pro">
-                120 <span className="currency">DT</span> <span className="pack-period">/ an</span>
+                {pack2Price} <span className="currency">DT</span> <span className="pack-period">/ {pack2Duration}</span>
               </div>
               <p className="pack-subdesc">Modifications illimitées de vos tarifs, photos et équipements toute l'année.</p>
               
@@ -151,12 +159,12 @@ export default function RenewPackModal({
                 <li>📸 Changement de photos, tarifs & description</li>
                 <li>⚙️ Ajustement des options et capacités</li>
                 <li>💬 Réservations directes WhatsApp & Email</li>
-                <li>📅 <strong>Valable 1 an renouvelable</strong></li>
+                <li>📅 <strong>Valable {pack2Duration} renouvelable</strong></li>
               </ul>
 
               <div className="pack-radio-indicator">
                 <div className="pack-radio-circle"></div>
-                <span>{selectedPack === 'pack_2' ? '✓ Pack Pro Sélectionné' : 'Choisir Pack Pro'}</span>
+                <span>{selectedPack === 'pack_2' ? `✓ ${pack2Name} Sélectionné` : `Choisir ${pack2Name}`}</span>
               </div>
             </div>
           </div>

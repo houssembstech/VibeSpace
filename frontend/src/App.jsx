@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import AuthModal from './components/AuthModal';
-import AdminModal from './components/AdminModal';
+import AdminModal, { isSpotMarkedPremium } from './components/AdminModal';
 import MySpotsModal, { computeSubscription } from './components/MySpotsModal';
 import EditSpotModal from './components/EditSpotModal';
 import RenewPackModal from './components/RenewPackModal';
@@ -44,7 +44,22 @@ function App() {
     return INITIAL_SPOTS.filter(s => !deleted.includes(s.id) && !deleted.includes(s._id) && !deleted.includes(String(s.id)));
   });
   const [activeCategory, setActiveCategory] = useState('🔥 Tout');
-  const [likedSpots, setLikedSpots] = useState({});
+  const [likedSpots, setLikedSpots] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vibespace_likes');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [packsConfig, setPacksConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vibespace_packs_config');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [showHostModal, setShowHostModal] = useState(false);
@@ -152,6 +167,10 @@ function App() {
                 extraGuestPrice: Number(s.extraGuestPrice || 0),
                 status: s.status || 'approved',
                 isPremium: Boolean(s.isPremium),
+                rating: s.rating !== undefined ? Number(s.rating) : 5.0,
+                allowedAudiences: s.allowedAudiences || [],
+                animalFee: s.animalFee !== undefined ? Number(s.animalFee) : 13,
+                addons: s.addons || [],
                 img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
               };
             });
@@ -169,6 +188,30 @@ function App() {
         }
       })
       .catch(err => console.error("Users API Fetch Error:", err));
+
+    fetch(`${API_URL}/api/packs-config`)
+      .then(res => res.json())
+      .then(data => {
+        if(data && typeof data === 'object') {
+          setPacksConfig(data);
+          localStorage.setItem('vibespace_packs_config', JSON.stringify(data));
+        }
+      })
+      .catch(err => console.warn("Packs API Fetch Error:", err));
+  };
+
+  const handleSavePacksConfig = async (newConfig) => {
+    setPacksConfig(newConfig);
+    localStorage.setItem('vibespace_packs_config', JSON.stringify(newConfig));
+    try {
+      await fetch(`${API_URL}/api/packs-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfig)
+      });
+    } catch (e) {
+      console.warn("Backend offline, packs config saved locally:", e);
+    }
   };
 
   useEffect(() => {
@@ -382,6 +425,9 @@ function App() {
     formData.append('hostWhatsapp', updatedData.hostWhatsapp || '');
     formData.append('isPremium', Boolean(updatedData.isPremium));
     if (updatedData.addons) formData.append('addons', JSON.stringify(updatedData.addons));
+    if (updatedData.allowedAudiences) formData.append('allowedAudiences', JSON.stringify(updatedData.allowedAudiences));
+    formData.append('animalFee', updatedData.animalFee !== undefined ? updatedData.animalFee : 13);
+    if (updatedData.rating !== undefined) formData.append('rating', updatedData.rating);
 
     if (newFiles && newFiles.length > 0) {
       newFiles.slice(0, 5).forEach(f => formData.append('images', f));
@@ -412,6 +458,10 @@ function App() {
         maxCapacity: data.maxCapacity || updatedData.maxCapacity,
         extraGuestPrice: data.extraGuestPrice !== undefined ? data.extraGuestPrice : updatedData.extraGuestPrice,
         isPremium: data.isPremium !== undefined ? Boolean(data.isPremium) : Boolean(updatedData.isPremium),
+        rating: data.rating !== undefined ? Number(data.rating) : (updatedData.rating || 5.0),
+        allowedAudiences: data.allowedAudiences || updatedData.allowedAudiences || [],
+        animalFee: data.animalFee !== undefined ? data.animalFee : updatedData.animalFee,
+        addons: data.addons || updatedData.addons || [],
         img: data.images && data.images.length > 0 ? data.images[0] : (data.imageUrl || updatedData.img)
       };
       setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? savedSpot : s));
@@ -439,9 +489,38 @@ function App() {
     }
   };
 
+  const handleUpdateSpotRating = async (spotId, newRating) => {
+    const parsed = Math.min(5.0, Math.max(1.0, parseFloat(newRating) || 5.0));
+    setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? { ...s, rating: parsed } : s));
+    if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) {
+      setSelectedSpot(prev => ({ ...prev, rating: parsed }));
+    }
+    try {
+      await fetch(`${API_URL}/api/spots/${spotId}/rating`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: parsed })
+      });
+    } catch (e) {
+      console.warn("Backend offline, rating updated locally:", e);
+    }
+  };
+
   const toggleLike = (e, id) => {
     e.stopPropagation();
-    setLikedSpots(prev => ({ ...prev, [id]: !prev[id] }));
+    setLikedSpots(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem('vibespace_likes', JSON.stringify(next));
+        if (currentUser) {
+          const key = `vibespace_likes_${currentUser.email || currentUser._id}`;
+          localStorage.setItem(key, JSON.stringify(next));
+        }
+      } catch (err) {
+        console.warn("Could not save likes:", err);
+      }
+      return next;
+    });
   };
 
   const updateAddon = (id, delta) => {
@@ -676,10 +755,8 @@ function App() {
         }
       }
 
-      // Check if spot is marked isPremium OR host has pack_2 (120 DT Pack Pro)
-      const hostUser = usersList.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
-      const isHostPack2 = hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120);
-      return Boolean(spot.isPremium !== undefined ? spot.isPremium : isHostPack2) || Boolean(spot.isPremium) || Boolean(isHostPack2);
+      // Check isSpotMarkedPremium (explicit false overrides host pack)
+      return isSpotMarkedPremium(spot, usersList);
     });
   }, [spotsList, usersList]);
 
@@ -1877,6 +1954,7 @@ function App() {
         currentUser={currentUser}
         onLoginSuccess={handleLoginSuccess}
         API_URL={API_URL}
+        packsConfig={packsConfig}
       />
 
       {/* Admin Panel Modal */}
@@ -1888,11 +1966,15 @@ function App() {
         onUpdateSpotStatus={handleUpdateSpotStatus}
         onDeleteSpot={handleDeleteSpot}
         onToggleSpotPremium={handleToggleSpotPremium}
+        onUpdateSpotRating={handleUpdateSpotRating}
+        onEditSpot={(spot) => setEditingSpot(spot)}
         onToggleCanEdit={handleToggleCanEdit}
         onCreateUser={handleCreateUser}
         onRenewPackAdmin={handleRenewPackAdmin}
         onApproveRenewal={handleApproveRenewal}
         onRejectRenewal={handleRejectRenewal}
+        packsConfig={packsConfig}
+        onSavePacksConfig={handleSavePacksConfig}
       />
 
       {/* Responsable - My Spots Modal */}
@@ -1906,6 +1988,7 @@ function App() {
         onDeleteSpot={handleDeleteSpot}
         onOpenRenewModal={() => setShowRenewModal(true)}
         onSimulatePackDate={handleSimulatePackDate}
+        packsConfig={packsConfig}
       />
 
       {/* Renew Annual Pack Modal */}
@@ -1915,6 +1998,7 @@ function App() {
         currentUser={currentUser}
         onSuccessRenewRequest={handleRenewRequestSuccess}
         API_URL={API_URL}
+        packsConfig={packsConfig}
       />
 
       {/* Edit Spot Modal */}
