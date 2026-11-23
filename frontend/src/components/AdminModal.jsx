@@ -8,6 +8,7 @@ export default function AdminModal({
   usersList,
   onUpdateSpotStatus,
   onDeleteSpot,
+  onToggleSpotPremium,
   onToggleCanEdit,
   onCreateUser,
   onRenewPackAdmin,
@@ -145,6 +146,9 @@ export default function AdminModal({
                 displayedSpots.map(spot => {
                   const isPending = spot.status === 'pending';
                   const isApproved = !spot.status || spot.status === 'approved';
+                  const hostUser = usersList?.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
+                  const isHostPack2 = hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120);
+                  const isSpotPremium = Boolean(spot.isPremium !== undefined ? spot.isPremium : isHostPack2);
 
                   return (
                     <div key={spot.id || spot._id} className="admin-spot-card">
@@ -153,6 +157,22 @@ export default function AdminModal({
                         <span className={`admin-status-tag ${isPending ? 'pending' : 'approved'}`}>
                           {isPending ? '⏳ En attente' : '✅ En ligne'}
                         </span>
+                        {isSpotPremium && (
+                          <span 
+                            className="admin-status-tag" 
+                            style={{ 
+                              left: 'auto', 
+                              right: '8px', 
+                              background: 'linear-gradient(135deg, #f59e0b, #d97706)', 
+                              color: '#fff', 
+                              border: 'none', 
+                              fontWeight: '700',
+                              boxShadow: '0 2px 6px rgba(245, 158, 11, 0.4)'
+                            }}
+                          >
+                            👑 Premium (120 DT)
+                          </span>
+                        )}
                       </div>
 
                       <div className="admin-spot-info">
@@ -161,9 +181,12 @@ export default function AdminModal({
                           <span className="admin-spot-cat">{spot.category}</span>
                         </div>
                         <p className="admin-spot-price">
-                          {spot.price || spot.pricePerHour} DT/heure
+                          {spot.pricingType === 'day' 
+                            ? `${spot.priceFullDay || spot.price || spot.pricePerHour} DT/jour` 
+                            : `${spot.price || spot.pricePerHour} DT/heure`}
                           {spot.priceHalfDay > 0 && ` • ${spot.priceHalfDay} DT/½j`}
-                          {spot.priceFullDay > 0 && ` • ${spot.priceFullDay} DT/j`}
+                          {spot.pricingType === 'day' && spot.pricePerHour > 0 && ` • ${spot.pricePerHour} DT/h`}
+                          {spot.pricingType !== 'day' && spot.priceFullDay > 0 && ` • ${spot.priceFullDay} DT/j`}
                           {` • Max ${spot.capacity || spot.maxCapacity} pers`}
                         </p>
 
@@ -175,6 +198,24 @@ export default function AdminModal({
                       </div>
 
                       <div className="admin-spot-actions">
+                        <button
+                          className={`btn-admin-action ${isSpotPremium ? 'btn-premium-active' : 'btn-premium-toggle'}`}
+                          onClick={() => onToggleSpotPremium && onToggleSpotPremium(spot.id || spot._id, isSpotPremium)}
+                          style={isSpotPremium ? {
+                            background: 'rgba(245, 158, 11, 0.2)',
+                            borderColor: '#f59e0b',
+                            color: '#fbbf24',
+                            fontWeight: '600'
+                          } : {
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            color: '#e2e8f0'
+                          }}
+                          title={isSpotPremium ? "Retirer de la sélection Premium (Carrousel)" : "Mettre en avant dans la sélection Premium (Carrousel 120 DT)"}
+                        >
+                          {isSpotPremium ? '★ Retirer Premium' : '👑 Passer en Premium'}
+                        </button>
+
                         {isPending ? (
                           <button
                             className="btn-admin-action btn-approve"

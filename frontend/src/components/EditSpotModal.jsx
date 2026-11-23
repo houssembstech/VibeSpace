@@ -14,11 +14,21 @@ export default function EditSpotModal({
   const [description, setDescription] = useState(spot.description || '');
   const [category, setCategory] = useState(spot.category || '✨ Célébrer');
   const [location, setLocation] = useState(spot.location || '');
-  const [pricePerHour, setPricePerHour] = useState(spot.price || spot.pricePerHour || 50);
+  const [pricingType, setPricingType] = useState(
+    spot.pricingType || (spot.priceFullDay > 0 && (!spot.pricePerHour || spot.pricePerHour === 0) ? 'day' : 'hour')
+  );
+  const [pricePerHour, setPricePerHour] = useState(
+    spot.pricePerHour !== undefined && spot.pricePerHour !== null
+      ? spot.pricePerHour
+      : (spot.pricingType === 'day' ? '' : (spot.price || 50))
+  );
   const [priceHalfDay, setPriceHalfDay] = useState(spot.priceHalfDay || '');
-  const [priceFullDay, setPriceFullDay] = useState(spot.priceFullDay || '');
+  const [priceFullDay, setPriceFullDay] = useState(
+    spot.priceFullDay || (spot.pricingType === 'day' || (spot.priceFullDay > 0 && !spot.pricePerHour) ? (spot.price || spot.pricePerHour || '') : '')
+  );
   const [includedGuests, setIncludedGuests] = useState(spot.includedGuests || spot.capacity || spot.maxCapacity || 10);
   const [isUnlimitedCapacity, setIsUnlimitedCapacity] = useState(Boolean(spot.isUnlimitedCapacity));
+  const [isPremium, setIsPremium] = useState(Boolean(spot.isPremium));
   const [maxCapacity, setMaxCapacity] = useState(spot.maxCapacity && spot.maxCapacity < 9000 ? spot.maxCapacity : (spot.capacity || 10));
   const [extraGuestPrice, setExtraGuestPrice] = useState(spot.extraGuestPrice || 0);
   const [hostEmail, setHostEmail] = useState(spot.hostEmail || '');
@@ -38,16 +48,21 @@ export default function EditSpotModal({
     const parsedIncludedGuests = Number(includedGuests || 10);
     const parsedMax = isUnlimitedCapacity ? 99999 : Math.max(parsedIncludedGuests, Number(maxCapacity || parsedIncludedGuests));
 
+    const effectivePriceFullDay = Number(priceFullDay || 0);
+    const effectivePricePerHour = Number(pricePerHour || 0);
+    const mainPrice = pricingType === 'day' ? (effectivePriceFullDay || effectivePricePerHour) : (effectivePricePerHour || effectivePriceFullDay);
+
     const updatedData = {
       ...spot,
       title,
       description,
       category,
       location,
-      price: Number(pricePerHour),
-      pricePerHour: Number(pricePerHour),
+      pricingType,
+      price: mainPrice,
+      pricePerHour: effectivePricePerHour,
       priceHalfDay: Number(priceHalfDay || 0),
-      priceFullDay: Number(priceFullDay || 0),
+      priceFullDay: effectivePriceFullDay,
       includedGuests: parsedIncludedGuests,
       isUnlimitedCapacity: isUnlimitedCapacity,
       maxCapacity: parsedMax,
@@ -56,6 +71,7 @@ export default function EditSpotModal({
       hostEmail,
       hostPhone,
       hostWhatsapp,
+      isPremium,
       addons: configuredAddons
     };
 
@@ -121,6 +137,20 @@ export default function EditSpotModal({
                 ))}
               </select>
             </div>
+
+            <div className="bb-col mt-input">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', padding: '0.75rem 1rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '10px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={isPremium} 
+                  onChange={(e) => setIsPremium(e.target.checked)} 
+                  style={{ width: '18px', height: '18px', accentColor: '#f59e0b', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.88rem', color: '#fbbf24', fontWeight: '600' }}>
+                  👑 Mettre en avant dans la sélection Premium (Carrousel horizontal 120 DT)
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Coordonnées */}
@@ -162,13 +192,70 @@ export default function EditSpotModal({
           {/* Tarification & Capacité */}
           <div className="host-section">
             <h3><span className="step-num">3</span> Tarifs & Capacité</h3>
+
+            <div style={{ marginBottom: '1.2rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem' }}>
+                FORMULE PRINCIPALE DU PACK *
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPricingType('hour')}
+                  style={{
+                    padding: '0.65rem 0.9rem',
+                    borderRadius: '8px',
+                    border: pricingType === 'hour' ? '2px solid var(--accent-1, #00f2fe)' : '1px solid rgba(255,255,255,0.15)',
+                    background: pricingType === 'hour' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255,255,255,0.04)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  ⏱️ Par Heure (DT/h)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPricingType('day')}
+                  style={{
+                    padding: '0.65rem 0.9rem',
+                    borderRadius: '8px',
+                    border: pricingType === 'day' ? '2px solid var(--accent-1, #00f2fe)' : '1px solid rgba(255,255,255,0.15)',
+                    background: pricingType === 'day' ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255,255,255,0.04)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  📅 Par Jour (DT/j)
+                </button>
+              </div>
+              <span style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '6px', display: 'block' }}>
+                {pricingType === 'day'
+                  ? "💡 Cet espace fonctionne par jour. La carte affichera le tarif en DT/j (ou DT/jour) au lieu de DT/h."
+                  : "💡 Cet espace fonctionne par heure. La carte affichera le tarif en DT/h."}
+              </span>
+            </div>
+
             <div className="host-grid-3">
               <div className="bb-col">
-                <label>PRIX / HEURE (DT) *</label>
+                <label>
+                  {pricingType === 'day' ? 'PRIX / HEURE (OPTIONNEL)' : 'PRIX / HEURE (DT) *'}
+                </label>
                 <input
                   type="number"
-                  required
-                  min="1"
+                  required={pricingType === 'hour'}
+                  min={pricingType === 'hour' ? '1' : '0'}
+                  placeholder={pricingType === 'day' ? 'Optionnel' : 'Ex: 60'}
                   value={pricePerHour}
                   onChange={(e) => setPricePerHour(e.target.value)}
                 />
@@ -184,10 +271,13 @@ export default function EditSpotModal({
                 />
               </div>
               <div className="bb-col">
-                <label>JOURNÉE (DT)</label>
+                <label>
+                  {pricingType === 'day' ? 'PRIX / JOURNÉE (DT) *' : 'JOURNÉE (DT)'}
+                </label>
                 <input
                   type="number"
-                  min="0"
+                  required={pricingType === 'day'}
+                  min={pricingType === 'day' ? '1' : '0'}
                   placeholder="Ex: 280"
                   value={priceFullDay}
                   onChange={(e) => setPriceFullDay(e.target.value)}

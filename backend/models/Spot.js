@@ -18,9 +18,14 @@ const spotSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  pricingType: {
+    type: String,
+    enum: ['hour', 'day'],
+    default: 'hour'
+  },
   pricePerHour: {
     type: Number,
-    required: true
+    default: 0
   },
   priceHalfDay: {
     type: Number,
@@ -63,6 +68,10 @@ const spotSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
+  },
+  isPremium: {
+    type: Boolean,
+    default: false
   },
   hostUserId: { type: String },
   rating: {

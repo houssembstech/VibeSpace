@@ -329,10 +329,10 @@ export default function MySpotsModal({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>
               <div>
                 <p style={{ margin: 0 }}>
-                  👑 <strong>Pack Flex Pro (120 DT/an) · Modifications illimitées actives</strong>
+                  👑 <strong>Pack Flex Pro (120 DT/an) · Modifications illimitées & Carrousel Premium actifs</strong>
                 </p>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
-                  Vous pouvez mettre à jour photos, tarifs, équipements, capacités et descriptions à tout moment. (Le nom de l'espace reste fixe et certifié 🔒).
+                  Votre espace bénéficie de la mise en avant dans le carrousel horizontal Premium en tête de page, et vous pouvez modifier photos, tarifs, équipements, capacités et descriptions à tout moment. (Le nom de l'espace reste certifié 🔒).
                 </p>
               </div>
               <span className="my-spot-badge approved" style={{ alignSelf: 'flex-start' }}>👑 Pack Pro (120 DT)</span>
@@ -437,9 +437,19 @@ export default function MySpotsModal({
                     <h4>{spot.title}</h4>
                     <p className="my-spot-item-loc">📍 {spot.location}</p>
                     <p className="my-spot-item-details">
-                      <strong>{spot.price || spot.pricePerHour} DT/h</strong>
-                      {spot.priceHalfDay > 0 && <span> • {spot.priceHalfDay} DT/½j</span>}
-                      {spot.priceFullDay > 0 && <span> • {spot.priceFullDay} DT/j</span>}
+                      {spot.pricingType === 'day' ? (
+                        <>
+                          <strong>{spot.priceFullDay || spot.price || spot.pricePerHour} DT/j</strong>
+                          {spot.priceHalfDay > 0 && <span> • {spot.priceHalfDay} DT/½j</span>}
+                          {spot.pricePerHour > 0 && <span> • {spot.pricePerHour} DT/h</span>}
+                        </>
+                      ) : (
+                        <>
+                          <strong>{spot.price || spot.pricePerHour} DT/h</strong>
+                          {spot.priceHalfDay > 0 && <span> • {spot.priceHalfDay} DT/½j</span>}
+                          {spot.priceFullDay > 0 && <span> • {spot.priceFullDay} DT/j</span>}
+                        </>
+                      )}
                       <span> • Capacité max: {spot.capacity || spot.maxCapacity} pers</span>
                     </p>
                     <div className="my-spot-contacts-preview">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import AuthModal from './components/AuthModal';
 import AdminModal from './components/AdminModal';
 import MySpotsModal, { computeSubscription } from './components/MySpotsModal';
@@ -27,80 +27,7 @@ const ADDONS_LIST = [
   { id: 'salon', name: 'Salon privé', price: 195 },
 ];
 
-const INITIAL_SPOTS = [
-  {
-    id: 1,
-    title: 'Neon Bunker 90s',
-    category: '🎮 Jouer',
-    img: 'https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=800&q=80',
-    location: 'Tunis, Lac 2',
-    capacity: 8,
-    includedGuests: 8,
-    extraGuestPrice: 0,
-    price: 45,
-    rating: 4.9,
-    description: "L'espace parfait pour vos gaming sessions & potes. Cet espace est entièrement privé et sans vis-à-vis.",
-    idealFor: ['Jouer', 'Se retrouver', 'Se détendre'],
-    status: 'approved',
-    hostEmail: 'houssembs.tech@gmail.com',
-    hostPhone: '+216 20 000 000',
-    hostWhatsapp: '+216 20 000 000'
-  },
-  {
-    id: 2,
-    title: 'Rooftop private dinner & shooting',
-    category: '✨ Célébrer',
-    img: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=800&q=80',
-    location: 'Sidi Bou Saïd',
-    capacity: 15,
-    includedGuests: 15,
-    extraGuestPrice: 0,
-    price: 69,
-    rating: 4.8,
-    description: "Cet espace est entièrement privé et sans vis-à-vis. L'espace parfait pour vos dates & shootings.",
-    idealFor: ['Célébrer', 'Se retrouver', 'Jouer', 'Se détendre', 'Shooting', 'Étudier', 'Travailler'],
-    status: 'approved',
-    hostEmail: 'sami.resp@vibespace.tn',
-    hostPhone: '+216 98 123 456',
-    hostWhatsapp: '+216 98 123 456'
-  },
-  {
-    id: 3,
-    title: 'Secret Forest Camp',
-    category: '⛺ Camping',
-    img: 'https://images.unsplash.com/photo-1504280650220-41315b493774?auto=format&fit=crop&w=800&q=80',
-    location: 'Zaghouan',
-    capacity: 12,
-    includedGuests: 12,
-    extraGuestPrice: 0,
-    price: 25,
-    rating: 5.0,
-    description: "Spot de camping isolé et privé. Cet espace est entièrement privé et sans vis-à-vis.",
-    idealFor: ['Se détendre', 'Se retrouver', 'Célébrer'],
-    status: 'approved',
-    hostEmail: 'nour.k@vibespace.tn',
-    hostPhone: '+216 55 987 654',
-    hostWhatsapp: '+216 55 987 654'
-  },
-  {
-    id: 4,
-    title: 'Chill Room 4K🍿',
-    category: '🎬 Regarder',
-    img: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?auto=format&fit=crop&w=800&q=80',
-    location: "L'Aouina",
-    capacity: 6,
-    includedGuests: 6,
-    extraGuestPrice: 0,
-    price: 30,
-    rating: 4.7,
-    description: "Home cinéma entièrement privatisé. Cet espace est entièrement privé et sans vis-à-vis.",
-    idealFor: ['Regarder', 'Se détendre', 'Se retrouver'],
-    status: 'approved',
-    hostEmail: 'houssembs.tech@gmail.com',
-    hostPhone: '+216 20 000 000',
-    hostWhatsapp: '+216 20 000 000'
-  }
-];
+const INITIAL_SPOTS = [];
 
 const getDeletedSpotIds = () => {
   try {
@@ -151,22 +78,6 @@ function App() {
       phone: '+216 20 000 000',
       role: 'admin',
       canEdit: true
-    },
-    {
-      _id: 'u_sami',
-      name: 'Sami Ben Amor',
-      email: 'sami.resp@vibespace.tn',
-      phone: '+216 98 123 456',
-      role: 'responsable',
-      canEdit: true
-    },
-    {
-      _id: 'u_nour',
-      name: 'Nour Khelil',
-      email: 'nour.k@vibespace.tn',
-      phone: '+216 55 987 654',
-      role: 'responsable',
-      canEdit: false
     }
   ]);
 
@@ -202,7 +113,7 @@ function App() {
       const activeAddons = selectedSpot.addons || ADDONS_LIST;
       setAddons(activeAddons.reduce((acc, addon) => ({ ...acc, [addon.id]: 0 }), {}));
       setActiveImageIndex(0);
-      setBookingMode('hour');
+      setBookingMode(selectedSpot.pricingType === 'day' ? 'day' : 'hour');
       setBookingDays(1);
       setAdults(1);
       setKids(0);
@@ -224,29 +135,28 @@ function App() {
                 ? Number(s.includedGuests)
                 : (s.maxCapacity && s.maxCapacity < 9000 ? Number(s.maxCapacity) : (Number(s.capacity) || 10));
               const maxCapVal = isUnlim ? 99999 : (s.maxCapacity && s.maxCapacity < 9000 ? Number(s.maxCapacity) : incGuests);
+              const effectivePricingType = s.pricingType === 'day' || (Number(s.priceFullDay) > 0 && (!s.pricePerHour || Number(s.pricePerHour) === 0)) ? 'day' : (s.pricingType || 'hour');
+              const mainPrice = effectivePricingType === 'day' ? (s.priceFullDay || s.pricePerHour || s.price) : (s.pricePerHour || s.price || s.priceFullDay);
               return {
                 ...s,
                 id: s._id,
-                price: s.pricePerHour,
-                pricePerHour: s.pricePerHour,
-                priceHalfDay: s.priceHalfDay || 0,
-                priceFullDay: s.priceFullDay || 0,
+                pricingType: effectivePricingType,
+                price: mainPrice,
+                pricePerHour: Number(s.pricePerHour || 0),
+                priceHalfDay: Number(s.priceHalfDay || 0),
+                priceFullDay: Number(s.priceFullDay || 0),
                 capacity: maxCapVal,
                 maxCapacity: maxCapVal,
                 isUnlimitedCapacity: isUnlim,
                 includedGuests: incGuests,
                 extraGuestPrice: Number(s.extraGuestPrice || 0),
                 status: s.status || 'approved',
+                isPremium: Boolean(s.isPremium),
                 img: s.images && s.images.length > 0 ? s.images[0] : (s.imageUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e')
               };
             });
 
-          if (dbSpots.length > 0) {
-            setSpotsList(dbSpots);
-          } else {
-            const initials = INITIAL_SPOTS.filter(s => !deleted.includes(s.id) && !deleted.includes(s._id) && !deleted.includes(String(s.id)));
-            setSpotsList(initials);
-          }
+          setSpotsList(dbSpots);
         }
       })
       .catch(err => console.error("Spots API Fetch Error:", err));
@@ -254,7 +164,7 @@ function App() {
     fetch(`${API_URL}/api/auth/users`)
       .then(res => res.json())
       .then(data => {
-        if(data && Array.isArray(data) && data.length > 0) {
+        if(data && Array.isArray(data)) {
           setUsersList(data);
         }
       })
@@ -459,7 +369,8 @@ function App() {
     formData.append('location', updatedData.location);
     formData.append('description', updatedData.description);
     formData.append('category', updatedData.category);
-    formData.append('pricePerHour', updatedData.pricePerHour);
+    formData.append('pricingType', updatedData.pricingType || 'hour');
+    formData.append('pricePerHour', updatedData.pricePerHour !== undefined ? updatedData.pricePerHour : 0);
     formData.append('priceHalfDay', updatedData.priceHalfDay || 0);
     formData.append('priceFullDay', updatedData.priceFullDay || 0);
     formData.append('includedGuests', updatedData.includedGuests || 10);
@@ -469,6 +380,7 @@ function App() {
     formData.append('hostEmail', updatedData.hostEmail);
     formData.append('hostPhone', updatedData.hostPhone);
     formData.append('hostWhatsapp', updatedData.hostWhatsapp || '');
+    formData.append('isPremium', Boolean(updatedData.isPremium));
     if (updatedData.addons) formData.append('addons', JSON.stringify(updatedData.addons));
 
     if (newFiles && newFiles.length > 0) {
@@ -482,11 +394,16 @@ function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erreur lors de la mise à jour');
+      const effectivePricing = data.pricingType || updatedData.pricingType || 'hour';
+      const mainPrice = effectivePricing === 'day' 
+        ? (data.priceFullDay || updatedData.priceFullDay || data.pricePerHour || updatedData.pricePerHour)
+        : (data.pricePerHour || updatedData.pricePerHour || data.priceFullDay);
       const savedSpot = {
         ...data,
         id: data._id,
-        price: data.pricePerHour,
-        pricePerHour: data.pricePerHour,
+        pricingType: effectivePricing,
+        price: mainPrice,
+        pricePerHour: data.pricePerHour !== undefined ? data.pricePerHour : updatedData.pricePerHour,
         priceHalfDay: data.priceHalfDay || updatedData.priceHalfDay || 0,
         priceFullDay: data.priceFullDay || updatedData.priceFullDay || 0,
         includedGuests: data.includedGuests || updatedData.includedGuests,
@@ -494,6 +411,7 @@ function App() {
         capacity: data.maxCapacity || updatedData.maxCapacity,
         maxCapacity: data.maxCapacity || updatedData.maxCapacity,
         extraGuestPrice: data.extraGuestPrice !== undefined ? data.extraGuestPrice : updatedData.extraGuestPrice,
+        isPremium: data.isPremium !== undefined ? Boolean(data.isPremium) : Boolean(updatedData.isPremium),
         img: data.images && data.images.length > 0 ? data.images[0] : (data.imageUrl || updatedData.img)
       };
       setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? savedSpot : s));
@@ -501,6 +419,23 @@ function App() {
     } catch (err) {
       setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? updatedData : s));
       if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) setSelectedSpot(updatedData);
+    }
+  };
+
+  const handleToggleSpotPremium = async (spotId, currentIsPremium) => {
+    const nextVal = !currentIsPremium;
+    setSpotsList(prev => prev.map(s => (s.id === spotId || s._id === spotId) ? { ...s, isPremium: nextVal } : s));
+    if (selectedSpot && (selectedSpot.id === spotId || selectedSpot._id === spotId)) {
+      setSelectedSpot(prev => ({ ...prev, isPremium: nextVal }));
+    }
+    try {
+      await fetch(`${API_URL}/api/spots/${spotId}/premium`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPremium: nextVal })
+      });
+    } catch (e) {
+      console.warn("Backend offline, premium status updated locally:", e);
     }
   };
 
@@ -542,9 +477,18 @@ function App() {
     ) : 10
   );
 
-  const hourlyRate = selectedSpot ? (selectedSpot.pricePerHour || selectedSpot.price || 0) : 0;
-  const halfDayRate = selectedSpot ? (selectedSpot.priceHalfDay > 0 ? selectedSpot.priceHalfDay : Math.round(hourlyRate * 4 * 0.85)) : 0;
-  const fullDayRate = selectedSpot ? (selectedSpot.priceFullDay > 0 ? selectedSpot.priceFullDay : Math.round(hourlyRate * 8 * 0.8)) : 0;
+  const isDaySpot = selectedSpot?.pricingType === 'day';
+  const hourlyRate = selectedSpot ? (selectedSpot.pricePerHour || (!isDaySpot ? selectedSpot.price : 0) || 0) : 0;
+  const fullDayRate = selectedSpot ? (
+    selectedSpot.priceFullDay > 0
+      ? selectedSpot.priceFullDay
+      : (isDaySpot ? (selectedSpot.price || selectedSpot.pricePerHour || 0) : Math.round(hourlyRate * 8 * 0.8))
+  ) : 0;
+  const halfDayRate = selectedSpot ? (
+    selectedSpot.priceHalfDay > 0
+      ? selectedSpot.priceHalfDay
+      : (isDaySpot && fullDayRate > 0 ? Math.round(fullDayRate * 0.6) : Math.round(hourlyRate * 4 * 0.85))
+  ) : 0;
 
   let spotBaseCost = 0;
   let baseUnitLabel = '';
@@ -708,6 +652,36 @@ function App() {
                         spot.location.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
+
+  const premiumScrollRef = useRef(null);
+  const scrollPremium = (direction) => {
+    if (premiumScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -340 : 340;
+      premiumScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const premiumSpots = useMemo(() => {
+    return spotsList.filter(spot => {
+      // Must be approved spot
+      const isApproved = !spot.status || spot.status === 'approved';
+      if (!isApproved) return false;
+
+      // Check if host is suspended
+      if (spot.hostEmail) {
+        const hostUser = usersList.find(u => u.email && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
+        if (hostUser) {
+          const hostSub = computeSubscription(hostUser);
+          if (hostSub.isSuspended) return false;
+        }
+      }
+
+      // Check if spot is marked isPremium OR host has pack_2 (120 DT Pack Pro)
+      const hostUser = usersList.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
+      const isHostPack2 = hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120);
+      return Boolean(spot.isPremium !== undefined ? spot.isPremium : isHostPack2) || Boolean(spot.isPremium) || Boolean(isHostPack2);
+    });
+  }, [spotsList, usersList]);
 
   return (
     <>
@@ -914,6 +888,95 @@ function App() {
         </div>
       </header>
 
+      {/* SECTION CARROUSEL HORIZONTAL : ESPACES PREMIUM (PACK 120 DT) */}
+      {premiumSpots.length > 0 && (
+        <section className="premium-showcase-section">
+          <div className="premium-section-header">
+            <div className="premium-title-group">
+              <div className="premium-crown-icon" aria-hidden="true">👑</div>
+              <div>
+                <div className="premium-badge-row">
+                  <span className="premium-tag-pill">PACK PRO 120 DT</span>
+                  <span className="premium-tag-sub">SÉLECTION EN VEDETTE</span>
+                </div>
+                <h3 className="premium-section-title">Espaces Premium</h3>
+                <p className="premium-section-desc">Espaces exclusifs certifiés avec flexibilité maximale et réservation directe.</p>
+              </div>
+            </div>
+
+            <div className="premium-carousel-controls">
+              <button 
+                className="carousel-control-btn" 
+                onClick={() => scrollPremium('left')}
+                title="Défiler vers la gauche"
+                aria-label="Défiler vers la gauche"
+              >
+                ‹
+              </button>
+              <button 
+                className="carousel-control-btn" 
+                onClick={() => scrollPremium('right')}
+                title="Défiler vers la droite"
+                aria-label="Défiler vers la droite"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+
+          <div className="premium-horizontal-scroll" ref={premiumScrollRef}>
+            {premiumSpots.map(spot => (
+              <article 
+                className="premium-spot-card" 
+                key={`prem_${spot.id || spot._id}`}
+                onClick={() => setSelectedSpot(spot)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="premium-card-image-wrap">
+                  <img src={spot.img} alt={spot.title} loading="lazy" />
+                  <div className="premium-floating-badge">
+                    <span>👑 Premium</span>
+                  </div>
+                  <div className="premium-category-badge">{spot.category}</div>
+                  <button 
+                    className={`btn-like ${likedSpots[spot.id] ? 'liked' : ''}`}
+                    onClick={(e) => toggleLike(e, spot.id)}
+                    aria-label="Ajouter aux favoris"
+                  >
+                    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  </button>
+                </div>
+
+                <div className="premium-card-content">
+                  <div className="premium-card-top">
+                    <h4>{spot.title}</h4>
+                    <span className="premium-card-rating">★ {spot.rating || '5.0'}</span>
+                  </div>
+                  <p className="premium-card-location">📍 {spot.location}</p>
+
+                  <div className="premium-card-footer">
+                    <span className="premium-card-capacity">
+                      👥 Pack: <strong>{spot.includedGuests || spot.capacity} pers.</strong>
+                    </span>
+                    <span className="premium-card-price">
+                      {spot.pricingType === 'day' ? (
+                        <>
+                          <strong className="premium-price-val">{spot.priceFullDay || spot.price || spot.pricePerHour} DT</strong>/j
+                        </>
+                      ) : (
+                        <>
+                          <strong className="premium-price-val">{spot.price || spot.pricePerHour} DT</strong>/h
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="categories-section">
         <div className="categories-scroll">
           {COURSES_CATEGORIES.map(cat => (
@@ -929,7 +992,13 @@ function App() {
       </section>
 
       <main className="spots-container">
-        {filteredSpots.map(spot => (
+        {filteredSpots.length === 0 ? (
+          <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '60px 20px', color: '#94a3b8' }}>
+            <p style={{ fontSize: '1.25rem', marginBottom: '8px', color: '#f1f5f9', fontWeight: 600 }}>Aucun espace disponible 🏖️</p>
+            <p style={{ fontSize: '0.95rem' }}>Tous les espaces affichés ici sont directement synchronisés avec la base de données.</p>
+          </div>
+        ) : (
+          filteredSpots.map(spot => (
           <article className="spot-card" key={spot.id} onClick={() => setSelectedSpot(spot)} style={{cursor: 'pointer'}}>
             <div className="spot-image">
               <img src={spot.img} alt={spot.title} />
@@ -959,15 +1028,26 @@ function App() {
                   )}
                 </span>
                 <span className="spot-price">
-                  <strong className="price-gradient">{spot.price || spot.pricePerHour} DT</strong>/h
-                  {spot.priceHalfDay > 0 && <span className="price-badge-extra"> · {spot.priceHalfDay} DT/½j</span>}
-                  {spot.priceFullDay > 0 && <span className="price-badge-extra"> · {spot.priceFullDay} DT/j</span>}
+                  {spot.pricingType === 'day' ? (
+                    <>
+                      <strong className="price-gradient">{spot.priceFullDay || spot.price || spot.pricePerHour} DT</strong>/j
+                      {spot.priceHalfDay > 0 && <span className="price-badge-extra"> · {spot.priceHalfDay} DT/½j</span>}
+                      {spot.pricePerHour > 0 && <span className="price-badge-extra"> · {spot.pricePerHour} DT/h</span>}
+                    </>
+                  ) : (
+                    <>
+                      <strong className="price-gradient">{spot.price || spot.pricePerHour} DT</strong>/h
+                      {spot.priceHalfDay > 0 && <span className="price-badge-extra"> · {spot.priceHalfDay} DT/½j</span>}
+                      {spot.priceFullDay > 0 && <span className="price-badge-extra"> · {spot.priceFullDay} DT/j</span>}
+                    </>
+                  )}
                 </span>
               </div>
               <button className="btn-book">Consulter</button>
             </div>
           </article>
-        ))}
+        ))
+        )}
       </main>
 
       {/* Spot Detail Booking Modal */}
@@ -1015,10 +1095,23 @@ function App() {
 
               <div className="booking-price-header">
                 <div className="b-price-group">
-                  <span className="b-price"><strong className="price-gradient">{selectedSpot.price || selectedSpot.pricePerHour} DT</strong> /HR</span>
+                  {selectedSpot.pricingType === 'day' ? (
+                    <span className="b-price"><strong className="price-gradient">{fullDayRate} DT</strong> /JOUR</span>
+                  ) : (
+                    <span className="b-price"><strong className="price-gradient">{hourlyRate} DT</strong> /HR</span>
+                  )}
                   <div className="b-price-sub">
-                    {selectedSpot.priceHalfDay > 0 && <span>☀️ <strong>{selectedSpot.priceHalfDay} DT</strong> Demi-journée </span>}
-                    {selectedSpot.priceFullDay > 0 && <span>📅 <strong>{selectedSpot.priceFullDay} DT</strong> Journée entière</span>}
+                    {selectedSpot.pricingType === 'day' ? (
+                      <>
+                        {selectedSpot.priceHalfDay > 0 && <span>☀️ <strong>{selectedSpot.priceHalfDay} DT</strong> Demi-journée </span>}
+                        {selectedSpot.pricePerHour > 0 && <span>⏱️ <strong>{selectedSpot.pricePerHour} DT</strong> Par heure </span>}
+                      </>
+                    ) : (
+                      <>
+                        {selectedSpot.priceHalfDay > 0 && <span>☀️ <strong>{selectedSpot.priceHalfDay} DT</strong> Demi-journée </span>}
+                        {selectedSpot.priceFullDay > 0 && <span>📅 <strong>{selectedSpot.priceFullDay} DT</strong> Journée entière</span>}
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="b-spots-remaining-container">
@@ -1031,29 +1124,33 @@ function App() {
 
               {/* Booking Mode Selector Tabs */}
               <div className="booking-mode-tabs">
-                <button
-                  type="button"
-                  className={`mode-tab-btn ${bookingMode === 'hour' ? 'active' : ''}`}
-                  onClick={() => setBookingMode('hour')}
-                >
-                  <span>⏱️ Par Heure</span>
-                  <span className="mode-tab-sub">{selectedSpot.price || selectedSpot.pricePerHour} DT/h</span>
-                </button>
-                <button
-                  type="button"
-                  className={`mode-tab-btn ${bookingMode === 'halfday' ? 'active' : ''}`}
-                  onClick={() => setBookingMode('halfday')}
-                >
-                  <span>☀️ Demi-Journée</span>
-                  <span className="mode-tab-sub">{selectedSpot.priceHalfDay > 0 ? `${selectedSpot.priceHalfDay} DT` : `${halfDayRate} DT`}</span>
-                </button>
+                {(selectedSpot.pricingType !== 'day' || selectedSpot.pricePerHour > 0) && (
+                  <button
+                    type="button"
+                    className={`mode-tab-btn ${bookingMode === 'hour' ? 'active' : ''}`}
+                    onClick={() => setBookingMode('hour')}
+                  >
+                    <span>⏱️ Par Heure</span>
+                    <span className="mode-tab-sub">{hourlyRate} DT/h</span>
+                  </button>
+                )}
+                {(halfDayRate > 0 || selectedSpot.priceHalfDay > 0) && (
+                  <button
+                    type="button"
+                    className={`mode-tab-btn ${bookingMode === 'halfday' ? 'active' : ''}`}
+                    onClick={() => setBookingMode('halfday')}
+                  >
+                    <span>☀️ Demi-Journée</span>
+                    <span className="mode-tab-sub">{selectedSpot.priceHalfDay > 0 ? `${selectedSpot.priceHalfDay} DT` : `${halfDayRate} DT`}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`mode-tab-btn ${bookingMode === 'day' ? 'active' : ''}`}
                   onClick={() => setBookingMode('day')}
                 >
                   <span>📅 Par Journée</span>
-                  <span className="mode-tab-sub">{selectedSpot.priceFullDay > 0 ? `${selectedSpot.priceFullDay} DT/j` : `${fullDayRate} DT/j`}</span>
+                  <span className="mode-tab-sub">{fullDayRate} DT/j</span>
                 </button>
               </div>
 
@@ -1392,7 +1489,8 @@ function App() {
                 const spotTitle = form.querySelector('input[name="title"]')?.value || form.querySelector('input[placeholder*="Sunset Rooftop"]')?.value;
                 const spotLocation = form.querySelector('input[name="location"]')?.value || form.querySelector('input[placeholder*="Sidi Bou Saïd"]')?.value;
                 const spotDesc = form.querySelector('textarea[name="description"]')?.value || form.querySelector('textarea')?.value;
-                const spotPrice = parseFloat(form.querySelector('input[name="pricePerHour"]')?.value) || 50;
+                const spotPricingType = form.querySelector('input[name="pricingType"]:checked')?.value || 'hour';
+                const spotPrice = parseFloat(form.querySelector('input[name="pricePerHour"]')?.value) || 0;
                 const priceHalfDay = parseFloat(form.querySelector('input[name="priceHalfDay"]')?.value) || 0;
                 const priceFullDay = parseFloat(form.querySelector('input[name="priceFullDay"]')?.value) || 0;
                 const isUnlimited = form.querySelector('#host-unlimited-cap')?.checked || false;
@@ -1417,6 +1515,7 @@ function App() {
                 formData.append('location', spotLocation);
                 formData.append('description', spotDesc);
                 formData.append('category', spotCategory);
+                formData.append('pricingType', spotPricingType);
                 formData.append('pricePerHour', spotPrice);
                 formData.append('priceHalfDay', priceHalfDay);
                 formData.append('priceFullDay', priceFullDay);
@@ -1454,11 +1553,16 @@ function App() {
                   return data;
                 })
                 .then(savedSpot => {
+                  const effectiveType = savedSpot.pricingType || spotPricingType;
+                  const mainPrice = effectiveType === 'day'
+                    ? (savedSpot.priceFullDay || priceFullDay || savedSpot.pricePerHour || spotPrice)
+                    : (savedSpot.pricePerHour || spotPrice || savedSpot.priceFullDay || priceFullDay);
                   const finalSpot = {
                     ...savedSpot,
                     id: savedSpot._id || ('spot_' + Date.now()),
-                    price: savedSpot.pricePerHour || spotPrice,
-                    pricePerHour: savedSpot.pricePerHour || spotPrice,
+                    pricingType: effectiveType,
+                    price: mainPrice,
+                    pricePerHour: savedSpot.pricePerHour !== undefined ? savedSpot.pricePerHour : spotPrice,
                     priceHalfDay: savedSpot.priceHalfDay || priceHalfDay,
                     priceFullDay: savedSpot.priceFullDay || priceFullDay,
                     includedGuests: savedSpot.includedGuests || packCapacity,
@@ -1568,11 +1672,57 @@ function App() {
 
                 <div className="host-section">
                   <h3><span className="step-num">2</span> Tarifs & Capacité</h3>
+
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                      FORMULE PRINCIPALE DU PACK *
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <label style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '0.65rem 0.9rem',
+                        borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.04)', fontSize: '0.88rem'
+                      }}>
+                        <input
+                          type="radio"
+                          name="pricingType"
+                          value="hour"
+                          defaultChecked
+                          onChange={() => {
+                            const hInp = document.getElementById('new-spot-price-hour');
+                            const dInp = document.getElementById('new-spot-price-day');
+                            if (hInp) hInp.required = true;
+                            if (dInp) dInp.required = false;
+                          }}
+                        />
+                        <span>⏱️ Par Heure (DT/h)</span>
+                      </label>
+                      <label style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '0.65rem 0.9rem',
+                        borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.04)', fontSize: '0.88rem'
+                      }}>
+                        <input
+                          type="radio"
+                          name="pricingType"
+                          value="day"
+                          onChange={() => {
+                            const hInp = document.getElementById('new-spot-price-hour');
+                            const dInp = document.getElementById('new-spot-price-day');
+                            if (hInp) hInp.required = false;
+                            if (dInp) dInp.required = true;
+                          }}
+                        />
+                        <span>📅 Par Jour (DT/jour)</span>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="host-grid-3">
                     <div className="bb-col">
-                      <label>PRIX / HEURE *</label>
+                      <label>PRIX / HEURE</label>
                       <div className="val-input-wrapper">
-                        <input type="number" name="pricePerHour" placeholder="60" min="1" required />
+                        <input type="number" id="new-spot-price-hour" name="pricePerHour" placeholder="60" min="0" required />
                         <span className="val-unit">DT</span>
                       </div>
                     </div>
@@ -1586,7 +1736,7 @@ function App() {
                     <div className="bb-col">
                       <label>JOURNÉE ENTIÈRE</label>
                       <div className="val-input-wrapper">
-                        <input type="number" name="priceFullDay" placeholder="280" min="0" />
+                        <input type="number" id="new-spot-price-day" name="priceFullDay" placeholder="280" min="0" />
                         <span className="val-unit">DT</span>
                       </div>
                     </div>
@@ -1737,6 +1887,7 @@ function App() {
         usersList={usersList}
         onUpdateSpotStatus={handleUpdateSpotStatus}
         onDeleteSpot={handleDeleteSpot}
+        onToggleSpotPremium={handleToggleSpotPremium}
         onToggleCanEdit={handleToggleCanEdit}
         onCreateUser={handleCreateUser}
         onRenewPackAdmin={handleRenewPackAdmin}

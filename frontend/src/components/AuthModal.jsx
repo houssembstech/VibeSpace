@@ -199,6 +199,7 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
                   
                   <ul className="pack-features-list">
                     <li className="highlight-feature">🚀 <strong>Tous les avantages du Pack 01 inclus</strong></li>
+                    <li className="highlight-feature">👑 <strong>Mise en avant Premium</strong> : carrousel horizontal exclusif en tête d'accueil</li>
                     <li className="highlight-feature">✏️ <strong>Modifications & Mises à jour illimitées</strong> toute l'année</li>
                     <li>📸 <strong>Changement de photos, tarifs</strong> (heure, ½ j, jour) & description</li>
                     <li>⚙️ <strong>Ajustement des options, équipements</strong> et capacités</li>

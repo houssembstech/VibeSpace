@@ -146,6 +146,7 @@ export default function RenewPackModal({
               
               <ul className="pack-features-list">
                 <li className="highlight-feature">🚀 <strong>Tous les avantages du Pack 01 inclus</strong></li>
+                <li className="highlight-feature">👑 <strong>Mise en avant Premium</strong> : carrousel horizontal exclusif en tête d'accueil</li>
                 <li className="highlight-feature">✏️ <strong>Modifications & Mises à jour illimitées</strong> toute l'année</li>
                 <li>📸 Changement de photos, tarifs & description</li>
                 <li>⚙️ Ajustement des options et capacités</li>
