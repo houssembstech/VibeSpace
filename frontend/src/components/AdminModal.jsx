@@ -5,7 +5,7 @@ export const isSpotMarkedPremium = (spot, usersList) => {
   if (spot.isPremium === false || spot.isPremium === 'false') return false;
   if (spot.isPremium === true || spot.isPremium === 'true') return true;
   const hostUser = usersList?.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
-  return Boolean(hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120));
+  return Boolean(hostUser && hostUser.pack === 'pack_2');
 };
 
 export default function AdminModal({
@@ -40,6 +40,13 @@ export default function AdminModal({
       setEditingPacks(packsConfig);
     }
   }, [packsConfig]);
+
+  const p1Price = editingPacks?.pack_1?.price ?? 70;
+  const p2Price = editingPacks?.pack_2?.price ?? 120;
+  const p1Duration = editingPacks?.pack_1?.durationMonths ?? 12;
+  const p2Duration = editingPacks?.pack_2?.durationMonths ?? 12;
+  const p1Name = editingPacks?.pack_1?.name || 'Pack 01';
+  const p2Name = editingPacks?.pack_2?.name || 'Pack Pro';
 
   // New user form state
   const [newName, setNewName] = useState('');
@@ -196,7 +203,7 @@ export default function AdminModal({
                               boxShadow: '0 2px 6px rgba(245, 158, 11, 0.4)'
                             }}
                           >
-                            👑 Premium ({editingPacks?.pack_2?.price || 120} DT)
+                            👑 Premium
                           </span>
                         )}
                       </div>
@@ -319,7 +326,7 @@ export default function AdminModal({
             <div className="admin-users-header">
               <div>
                 <h3>Demandes de Renouvellement de Pack ({pendingRenewals.length})</h3>
-                <p>Vérifiez la réception du règlement (70 DT ou 120 DT) avant de valider l'abonnement annuel du responsable.</p>
+                <p>Vérifiez la réception du règlement ({p1Price} DT ou {p2Price} DT) avant de valider l'abonnement du responsable.</p>
               </div>
             </div>
 
@@ -369,10 +376,10 @@ export default function AdminModal({
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div>
-                              Formule demandée : <strong>{isPack2 ? '⭐ Pack 02 Flex Pro' : '📦 Pack 01 Visibilité Directe'}</strong>
+                              Formule demandée : <strong>{isPack2 ? `⭐ ${p2Name}` : `📦 ${p1Name}`}</strong>
                             </div>
                             <span style={{ fontWeight: 800, color: '#f59e0b', fontSize: '1rem' }}>
-                              Montant à vérifier : {isPack2 ? '120 DT' : '70 DT'}
+                              Montant à vérifier : {req.requestedPackPrice ? `${req.requestedPackPrice} DT` : (isPack2 ? `${p2Price} DT` : `${p1Price} DT`)}
                             </span>
                           </div>
                           <div style={{ marginTop: '0.4rem', color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.4 }}>
@@ -395,7 +402,7 @@ export default function AdminModal({
                           }}
                           onClick={() => onApproveRenewal(u.email, req.requestedPack)}
                         >
-                          ✅ Valider Paiement & Activer (1 an)
+                          ✅ Valider Paiement & Activer ({isPack2 ? `${p2Duration} mois` : `${p1Duration} mois`})
                         </button>
                         <button
                           className="btn-admin-action btn-delete"
@@ -451,7 +458,7 @@ export default function AdminModal({
                     <th>Téléphone</th>
                     <th>Rôle</th>
                     <th>Formule / Pack</th>
-                    <th>Validité Abonnement (1 an)</th>
+                    <th>Validité Abonnement</th>
                     <th>Droit de modification</th>
                     <th>Action</th>
                   </tr>
@@ -461,7 +468,7 @@ export default function AdminModal({
                     const userId = u._id || u.id;
                     const isAdmin = u.role === 'admin';
                     const canEdit = u.canEdit || isAdmin;
-                    const isPack2 = u.pack === 'pack_2' || (u.packPrice === 120);
+                    const isPack2 = u.pack === 'pack_2';
                     const sub = computeSubscription(u);
                     const hasPendingRenewal = u.renewalRequest?.status === 'pending';
 
@@ -486,7 +493,7 @@ export default function AdminModal({
                           ) : (
                             <div>
                               <span className={`my-spot-badge ${isPack2 ? 'approved' : 'pending'}`} style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}>
-                                {isPack2 ? '👑 Pack Pro (120 DT)' : '📦 Pack 01 (70 DT)'}
+                                {isPack2 ? `👑 ${p2Name} (${p2Price} DT)` : `📦 ${p1Name} (${p1Price} DT)`}
                               </span>
                               {hasPendingRenewal && (
                                 <div style={{ marginTop: '4px' }}>
@@ -500,7 +507,7 @@ export default function AdminModal({
                                     display: 'inline-block',
                                     fontWeight: 700
                                   }}>
-                                    ⏳ Demande: {u.renewalRequest.requestedPack === 'pack_2' ? 'Pro 120DT' : '01 70DT'}
+                                    ⏳ Demande: {u.renewalRequest.requestedPack === 'pack_2' ? `Pro ${p2Price}DT` : `01 ${p1Price}DT`}
                                   </span>
                                 </div>
                               )}
@@ -539,10 +546,10 @@ export default function AdminModal({
                                   <button
                                     className="btn-admin-action"
                                     style={{ background: '#10b981', color: '#fff', padding: '0.3rem 0.55rem', fontSize: '0.72rem', fontWeight: 700 }}
-                                    title="Valider le paiement et activer pour 1 an"
+                                    title="Valider le paiement et activer le pack"
                                     onClick={() => onApproveRenewal(u.email, u.renewalRequest.requestedPack)}
                                   >
-                                    ✅ Valider ({u.renewalRequest.requestedPack === 'pack_2' ? '120DT' : '70DT'})
+                                    ✅ Valider ({u.renewalRequest.requestedPackPrice ? `${u.renewalRequest.requestedPackPrice}DT` : (u.renewalRequest.requestedPack === 'pack_2' ? `${p2Price}DT` : `${p1Price}DT`)})
                                   </button>
                                   <button
                                     className="btn-admin-action btn-delete"
@@ -570,10 +577,10 @@ export default function AdminModal({
                                     <button
                                       className="btn-admin-action"
                                       style={{ padding: '0.3rem 0.5rem', fontSize: '0.72rem' }}
-                                      title="Renouveler directement pour 1 an"
+                                      title={`Renouveler pour ${isPack2 ? `${p2Duration} mois` : `${p1Duration} mois`}`}
                                       onClick={() => onRenewPackAdmin(u.email)}
                                     >
-                                      🔄 +1 an
+                                      🔄 +{isPack2 ? `${p2Duration}m` : `${p1Duration}m`}
                                     </button>
                                   )}
                                 </>

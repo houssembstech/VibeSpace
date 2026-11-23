@@ -474,8 +474,8 @@ export default function MySpotsModal({
                           ✏️ Modifier mon espace
                         </button>
                       ) : (
-                        <button className="btn-edit-spot-action disabled" disabled title="Les modifications sont réservées aux membres Pack Flex Pro (120 DT/an). Contactez l'admin pour activer l'option.">
-                          🔒 Modification (Pack Pro 120 DT)
+                        <button className="btn-edit-spot-action disabled" disabled title={`Les modifications sont réservées aux membres ${p2Name} (${p2Price} DT). Contactez l'admin pour activer l'option.`}>
+                          🔒 Modification ({p2Name})
                         </button>
                       )}
                       {canEdit && onDeleteSpot && (

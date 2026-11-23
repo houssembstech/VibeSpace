@@ -779,7 +779,7 @@ function App() {
           position: 'relative',
           boxShadow: '0 4px 15px rgba(217, 119, 6, 0.4)'
         }}>
-          <span>⏳ <strong>DEMANDE EN COURS DE VÉRIFICATION :</strong> Votre demande pour le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? 'Pack Pro (120 DT)' : 'Pack 01 (70 DT)'}</strong> est en attente de validation de paiement par l'administrateur.</span>
+          <span>⏳ <strong>DEMANDE EN COURS DE VÉRIFICATION :</strong> Votre demande pour le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? `${packsConfig?.pack_2?.name || 'Pack Pro'} (${packsConfig?.pack_2?.price ?? 120} DT)` : `${packsConfig?.pack_1?.name || 'Pack 01'} (${packsConfig?.pack_1?.price ?? 70} DT)`}</strong> est en attente de validation de paiement par l'administrateur.</span>
           <button
             onClick={() => setShowRenewModal(true)}
             style={{
@@ -972,10 +972,6 @@ function App() {
             <div className="premium-title-group">
               <div className="premium-crown-icon" aria-hidden="true">👑</div>
               <div>
-                <div className="premium-badge-row">
-                  <span className="premium-tag-pill">PACK PRO 120 DT</span>
-                  <span className="premium-tag-sub">SÉLECTION EN VEDETTE</span>
-                </div>
                 <h3 className="premium-section-title">Espaces Premium</h3>
                 <p className="premium-section-desc">Espaces exclusifs certifiés avec flexibilité maximale et réservation directe.</p>
               </div>

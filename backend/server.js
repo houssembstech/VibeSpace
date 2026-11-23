@@ -575,9 +575,11 @@ app.post('/api/auth/users', async (req, res) => {
       return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
     }
 
+    const packs = getPacksConfig();
     const chosenPack = pack || (canEdit ? 'pack_2' : 'pack_1');
-    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
-    const dates = calculatePackDates(packPurchasedAt || new Date());
+    const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
+    const dates = calculatePackDates(packPurchasedAt || new Date(), chosenPack);
 
     const newUser = new User({
       name,
@@ -607,8 +609,10 @@ app.patch('/api/auth/users/:id/can-edit', async (req, res) => {
     const { canEdit } = req.body;
     const updateData = { canEdit: !!canEdit };
     if (canEdit) {
+      const packs = getPacksConfig();
+      const p2 = packs.pack_2 || DEFAULT_PACKS_CONFIG.pack_2;
       updateData.pack = 'pack_2';
-      updateData.packPrice = 120;
+      updateData.packPrice = p2 ? p2.price : 120;
     }
     const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
@@ -630,7 +634,9 @@ app.post('/api/auth/request-renewal', async (req, res) => {
 
     const packToRequest = requestedPack || pack;
     const chosenPack = packToRequest === 'pack_2' ? 'pack_2' : 'pack_1';
-    const packPrice = chosenPack === 'pack_2' ? 120 : 70;
+    const packs = getPacksConfig();
+    const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
 
     user.renewalRequest = {
       status: 'pending',
@@ -687,8 +693,10 @@ app.post('/api/auth/approve-renewal', async (req, res) => {
     };
 
     await user.save();
+    const packName = packConfig?.name || (targetPack === 'pack_2' ? 'Pack Pro' : 'Pack 01');
+    const duration = packConfig?.durationMonths || 12;
     res.json({
-      message: `Paiement vérifié ! Abonnement ${targetPack === 'pack_2' ? 'Pack Pro (120 DT)' : 'Pack 01 (70 DT)'} validé et actif pour 1 an 🚀`,
+      message: `Paiement vérifié ! Abonnement ${packName} (${packPrice} DT) validé et actif pour ${duration} mois 🚀`,
       user: formatUserResponse(user)
     });
   } catch (error) {

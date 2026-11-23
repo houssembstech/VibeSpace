@@ -296,7 +296,7 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
             {loading ? 'Chargement...' : (
               authMode === 'login' 
                 ? 'Se connecter ⚡' 
-                : (selectedPack === 'pack_2' ? 'Rejoindre avec Pack Flex Pro (120 DT/an) ⭐' : 'Rejoindre avec Pack Visibilité (70 DT/an) 🏢')
+                : (selectedPack === 'pack_2' ? `Rejoindre avec ${pack2Name} (${pack2Price} DT/${pack2Duration}) ⭐` : `Rejoindre avec ${pack1Name} (${pack1Price} DT/${pack1Duration}) 🏢`)
             )}
           </button>
 
