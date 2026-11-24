@@ -20,10 +20,16 @@ export default function RenewPackModal({
 
   const pack1Price = packsConfig?.pack_1?.price !== undefined ? packsConfig.pack_1.price : 70;
   const pack2Price = packsConfig?.pack_2?.price !== undefined ? packsConfig.pack_2.price : 120;
-  const pack1Duration = packsConfig?.pack_1?.durationMonths ? `${packsConfig.pack_1.durationMonths} mois` : 'an';
-  const pack2Duration = packsConfig?.pack_2?.durationMonths ? `${packsConfig.pack_2.durationMonths} mois` : 'an';
-  const pack1Name = packsConfig?.pack_1?.name || 'Pack 01 · Visibilité Directe';
-  const pack2Name = packsConfig?.pack_2?.name || 'Pack 02 · Flex Pro & Contrôle';
+  const pack3Price = packsConfig?.pack_3?.price !== undefined ? packsConfig.pack_3.price : 250;
+  const pack1Duration = packsConfig?.pack_1?.durationMonths ? `${packsConfig.pack_1.durationMonths} mois` : '12 mois';
+  const pack2Duration = packsConfig?.pack_2?.durationMonths ? `${packsConfig.pack_2.durationMonths} mois` : '12 mois';
+  const pack3Duration = packsConfig?.pack_3?.durationMonths ? `${packsConfig.pack_3.durationMonths} mois` : '12 mois';
+  const pack1Name = packsConfig?.pack_1?.name || 'Pack 01 · Bronze';
+  const pack2Name = packsConfig?.pack_2?.name || 'Pack 02 · Silver';
+  const pack3Name = packsConfig?.pack_3?.name || 'Pack 03 · Gold';
+
+  const selectedPrice = selectedPack === 'pack_3' ? pack3Price : (selectedPack === 'pack_2' ? pack2Price : pack1Price);
+  const selectedDuration = selectedPack === 'pack_3' ? pack3Duration : (selectedPack === 'pack_2' ? pack2Duration : pack1Duration);
 
   if (!isOpen || !currentUser) return null;
 
@@ -64,8 +70,6 @@ export default function RenewPackModal({
     }
   };
 
-  const selectedPrice = selectedPack === 'pack_2' ? pack2Price : pack1Price;
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content auth-modal-box renew-pack-modal" onClick={(e) => e.stopPropagation()}>
@@ -93,7 +97,7 @@ export default function RenewPackModal({
             color: '#fef3c7'
           }}>
             ⏳ <strong>Demande en cours d'examen :</strong> Vous avez déjà envoyé une demande pour le{' '}
-            <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`}</strong>. 
+            <strong>{currentUser.renewalRequest.requestedPack === 'pack_3' ? `${pack3Name} (${pack3Price} DT)` : (currentUser.renewalRequest.requestedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`)}</strong>. 
             L'administrateur vérifie le règlement. Vous pouvez ajuster votre choix ci-dessous si nécessaire.
           </div>
         )}
@@ -104,18 +108,19 @@ export default function RenewPackModal({
             <strong>Validation administrative requise après paiement</strong>
             <p>
               Pour garantir la conformité, le renouvellement est activé dès que l'administrateur 
-              valide la réception de votre règlement (<strong>{pack1Price} DT</strong> pour {pack1Name} ou <strong>{pack2Price} DT</strong> pour {pack2Name}).
+              valide la réception de votre règlement (<strong>{pack1Price} DT</strong> pour Bronze, <strong>{pack2Price} DT</strong> pour Silver ou <strong>{pack3Price} DT</strong> pour Gold VIP).
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSendRequest}>
           <div className="packs-selection-grid" style={{ marginTop: '1rem', marginBottom: '1rem' }}>
-            {/* PACK 01 */}
+            {/* PACK 01 - BRONZE */}
             <div 
-              className={`pack-card ${selectedPack === 'pack_1' ? 'selected' : ''}`}
+              className={`pack-card pack-bronze ${selectedPack === 'pack_1' ? 'selected' : ''}`}
               onClick={() => setSelectedPack('pack_1')}
             >
+              <div className="pack-tier-badge bronze">🥉 BRONZE</div>
               <div className="pack-card-header">
                 <h4 className="pack-name">{pack1Name}</h4>
               </div>
@@ -128,8 +133,8 @@ export default function RenewPackModal({
                 <li>✅ <strong>Publication de votre espace</strong> sur VibeSpace</li>
                 <li>💬 <strong>Réservations directes</strong> par WhatsApp & Email</li>
                 <li>💰 <strong>0% de commission</strong> sur tous vos gains</li>
-                <li>🔒 Fiche fixe certifiée</li>
-                <li>📅 <strong>Valable {pack1Duration} renouvelable</strong></li>
+                <li>🔒 Fiche fixe certifiée (non modifiable)</li>
+                <li>📅 <strong>Valable {pack1Duration} (renouvelable)</strong></li>
               </ul>
 
               <div className="pack-radio-indicator">
@@ -138,12 +143,13 @@ export default function RenewPackModal({
               </div>
             </div>
 
-            {/* PACK 02 */}
+            {/* PACK 02 - SILVER */}
             <div 
-              className={`pack-card pro ${selectedPack === 'pack_2' ? 'selected' : ''}`}
+              className={`pack-card pro pack-silver ${selectedPack === 'pack_2' ? 'selected' : ''}`}
               onClick={() => setSelectedPack('pack_2')}
             >
               <div className="pack-badge-top">⭐ RECOMMANDÉ · FLEXIBILITÉ MAX</div>
+              <div className="pack-tier-badge silver">🥈 SILVER</div>
               <div className="pack-card-header">
                 <h4 className="pack-name">{pack2Name}</h4>
               </div>
@@ -159,12 +165,44 @@ export default function RenewPackModal({
                 <li>📸 Changement de photos, tarifs & description</li>
                 <li>⚙️ Ajustement des options et capacités</li>
                 <li>💬 Réservations directes WhatsApp & Email</li>
-                <li>📅 <strong>Valable {pack2Duration} renouvelable</strong></li>
+                <li>📅 <strong>Valable {pack2Duration} (renouvelable)</strong></li>
               </ul>
 
               <div className="pack-radio-indicator">
                 <div className="pack-radio-circle"></div>
                 <span>{selectedPack === 'pack_2' ? `✓ ${pack2Name} Sélectionné` : `Choisir ${pack2Name}`}</span>
+              </div>
+            </div>
+
+            {/* PACK 03 - GOLD */}
+            <div 
+              className={`pack-card vip pack-gold ${selectedPack === 'pack_3' ? 'selected' : ''}`}
+              onClick={() => setSelectedPack('pack_3')}
+            >
+              <div className="pack-badge-top gold">👑 VIP · CRÉATION DE REEL PRO</div>
+              <div className="pack-tier-badge gold">🥇 GOLD VIP</div>
+              <div className="pack-card-header">
+                <h4 className="pack-name">{pack3Name}</h4>
+              </div>
+              <div className="pack-price-tag gold">
+                {pack3Price} <span className="currency">DT</span> <span className="pack-period">/ {pack3Duration}</span>
+              </div>
+              <p className="pack-subdesc">L'offre d'excellence avec création de Reel professionnel et visibilité maximale.</p>
+              
+              <ul className="pack-features-list">
+                <li className="highlight-feature gold">🚀 <strong>Tous les avantages Pack 01 & 02 inclus</strong></li>
+                <li className="highlight-feature gold">👑 <strong>Mise en avant Premium</strong> : carrousel horizontal exclusif en tête d'accueil</li>
+                <li className="highlight-feature gold">✏️ <strong>Modifications illimitées</strong> toute la période</li>
+                <li>📸 Changement de photos, tarifs & description</li>
+                <li>⚙️ Ajustement des options et capacités</li>
+                <li>💬 Réservations directes WhatsApp & Email</li>
+                <li>📅 <strong>Valable {pack3Duration} (renouvelable)</strong></li>
+                <li className="highlight-feature special-gold">🎬 <strong>Séance de création Reel avec matériel pro</strong> en collaboration</li>
+              </ul>
+
+              <div className="pack-radio-indicator">
+                <div className="pack-radio-circle"></div>
+                <span>{selectedPack === 'pack_3' ? `✓ ${pack3Name} Sélectionné` : `Choisir ${pack3Name}`}</span>
               </div>
             </div>
           </div>

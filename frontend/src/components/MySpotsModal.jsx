@@ -102,10 +102,19 @@ export default function MySpotsModal({
 
   const p1Price = packsConfig?.pack_1?.price ?? 70;
   const p2Price = packsConfig?.pack_2?.price ?? 120;
+  const p3Price = packsConfig?.pack_3?.price ?? 250;
   const p1Duration = packsConfig?.pack_1?.durationMonths ?? 12;
   const p2Duration = packsConfig?.pack_2?.durationMonths ?? 12;
-  const p1Name = packsConfig?.pack_1?.name || 'Pack 01 Visibilité';
-  const p2Name = packsConfig?.pack_2?.name || 'Pack 02 Flex Pro';
+  const p3Duration = packsConfig?.pack_3?.durationMonths ?? 12;
+  const p1Name = packsConfig?.pack_1?.name || 'Pack 01 · Bronze';
+  const p2Name = packsConfig?.pack_2?.name || 'Pack 02 · Silver';
+  const p3Name = packsConfig?.pack_3?.name || 'Pack 03 · Gold';
+
+  const getPackNameWithPrice = (packKey) => {
+    if (packKey === 'pack_3') return `🥇 ${p3Name} (${p3Price} DT)`;
+    if (packKey === 'pack_2') return `🥈 ${p2Name} (${p2Price} DT)`;
+    return `🥉 ${p1Name} (${p1Price} DT)`;
+  };
 
   const isAdmin = currentUser.role === 'admin';
   const mySpots = spotsList.filter(s => {
@@ -170,9 +179,9 @@ export default function MySpotsModal({
                   ⏳ <span>DEMANDE DE RENOUVELLEMENT EN ATTENTE DE L'ADMINISTRATEUR</span>
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.86rem', color: '#fff', lineHeight: 1.45 }}>
-                  Vous avez sollicité le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? `⭐ ${p2Name} (${p2Price} DT)` : `📦 ${p1Name} (${p1Price} DT)`}</strong>
+                  Vous avez sollicité le <strong>{getPackNameWithPrice(currentUser.renewalRequest.requestedPack)}</strong>
                   {currentUser.renewalRequest.requestedAt && ` le ${new Date(currentUser.renewalRequest.requestedAt).toLocaleDateString('fr-FR')}`}. 
-                  L'administrateur procède actuellement à la vérification de votre paiement. Dès validation, votre pack sera actif pour {currentUser.renewalRequest.requestedPack === 'pack_2' ? `${p2Duration} mois` : `${p1Duration} mois`} et vos espaces réactivés.
+                  L'administrateur procède actuellement à la vérification de votre paiement. Dès validation, votre pack sera actif pour {currentUser.renewalRequest.requestedPack === 'pack_3' ? `${p3Duration} mois` : (currentUser.renewalRequest.requestedPack === 'pack_2' ? `${p2Duration} mois` : `${p1Duration} mois`)} et vos espaces réactivés.
                 </p>
               </div>
               {onOpenRenewModal && (
@@ -314,7 +323,7 @@ export default function MySpotsModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem', fontSize: '0.85rem' }}>
             <div>
               <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Formule souscrite :</span>
-              <strong>{currentUser.pack === 'pack_2' ? `⭐ ${p2Name} (${p2Price} DT)` : `📦 ${p1Name} (${p1Price} DT)`}</strong>
+              <strong>{getPackNameWithPrice(currentUser.pack)}</strong>
             </div>
             <div>
               <span style={{ color: 'var(--text-secondary)', display: 'block' }}>Date de souscription :</span>
@@ -337,13 +346,21 @@ export default function MySpotsModal({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>
               <div>
                 <p style={{ margin: 0 }}>
-                  👑 <strong>{p2Name} ({p2Price} DT/{p2Duration >= 12 ? 'an' : `${p2Duration}m`}) · Modifications illimitées & Carrousel Premium actifs</strong>
+                  {currentUser.pack === 'pack_3' ? (
+                    <>🥇 <strong>{p3Name} ({p3Price} DT/{p3Duration}m) · VIP, Modifications illimitées & Création Reel</strong></>
+                  ) : (
+                    <>🥈 <strong>{p2Name} ({p2Price} DT/{p2Duration}m) · Modifications illimitées & Carrousel Premium</strong></>
+                  )}
                 </p>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.82rem', opacity: 0.9 }}>
-                  Votre espace bénéficie de la mise en avant dans le carrousel horizontal Premium en tête de page, et vous pouvez modifier photos, tarifs, équipements, capacités et descriptions à tout moment. (Le nom de l'espace reste certifié 🔒).
+                  {currentUser.pack === 'pack_3'
+                    ? "Votre espace bénéficie de la mise en avant Premium en tête d'accueil, modifications libres à tout moment et organisation de votre tournage Reel professionnel !"
+                    : "Votre espace bénéficie de la mise en avant dans le carrousel horizontal Premium en tête de page, et vous pouvez modifier photos, tarifs, équipements, capacités et descriptions à tout moment."}
                 </p>
               </div>
-              <span className="my-spot-badge approved" style={{ alignSelf: 'flex-start' }}>👑 {p2Name} ({p2Price} DT)</span>
+              <span className={`my-spot-badge ${currentUser.pack === 'pack_3' ? 'gold' : 'approved'}`} style={{ alignSelf: 'flex-start' }}>
+                {currentUser.pack === 'pack_3' ? `🥇 ${p3Name}` : `🥈 ${p2Name}`}
+              </span>
             </div>
           ) : (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.8rem' }}>

@@ -1,8 +1,10 @@
 {
   "pack_1": {
     "id": "pack_1",
-    "name": "Pack 01 · Visibilité Directe",
-    "shortName": "Pack 01 Visibilité",
+    "tier": "bronze",
+    "name": "Pack 01 · Bronze",
+    "subtitle": "Visibilité Directe",
+    "shortName": "Bronze",
     "price": 70,
     "durationMonths": 12,
     "graceDays": 7,
@@ -12,26 +14,53 @@
       "Nom d'espace certifié & fixe (immuable)",
       "Réservations directes sans intermédiaire (WhatsApp & Email)",
       "0% de commission sur tous vos revenus",
-      "Abonnement renouvelable"
+      "Abonnement valable 12 mois (renouvelable)",
+      "Fiche fixe : informations non modifiables après publication"
     ],
     "canEdit": false,
     "isPremium": false
   },
   "pack_2": {
     "id": "pack_2",
-    "name": "Pack 02 · Flex Pro & Contrôle",
-    "shortName": "Pack Flex Pro",
+    "tier": "silver",
+    "name": "Pack 02 · Silver",
+    "subtitle": "Flex Pro & Contrôle",
+    "shortName": "Silver",
     "price": 120,
     "durationMonths": 12,
     "graceDays": 7,
-    "description": "La solution complète avec mise en avant Premium et modifications illimitées.",
+    "description": "La solution complète pour ajuster vos tarifs et maximiser votre taux d'occupation.",
     "features": [
       "Tous les avantages du Pack 01 inclus",
       "Mise en avant Premium : carrousel horizontal exclusif en tête d'accueil",
       "Modifications & Mises à jour illimitées toute l'année",
       "Changement de photos, tarifs (heure, ½ j, jour) & description",
       "Ajustement des options, équipements et capacités",
-      "Réservations directes WhatsApp & Email"
+      "Réservations directes WhatsApp & Email",
+      "Abonnement valable 12 mois (renouvelable)"
+    ],
+    "canEdit": true,
+    "isPremium": true
+  },
+  "pack_3": {
+    "id": "pack_3",
+    "tier": "gold",
+    "name": "Pack 03 · Gold",
+    "subtitle": "Expérience VIP & Création Reel",
+    "shortName": "Gold VIP",
+    "price": 250,
+    "durationMonths": 12,
+    "graceDays": 7,
+    "description": "L'offre d'excellence avec création de Reel professionnel et visibilité maximale.",
+    "features": [
+      "Tous les avantages du Pack 01 et 02 inclus",
+      "Mise en avant Premium : carrousel horizontal exclusif en tête d'accueil",
+      "Modifications & Mises à jour illimitées toute la période d'abonnement",
+      "Changement de photos, tarifs (heure, ½ j, jour) & description",
+      "Ajustement des options, équipements et capacités",
+      "Réservations directes WhatsApp & Email",
+      "Abonnement valable 12 mois (renouvelable)",
+      "Séance pour création de Reel avec matériel professionnel organisée en collaboration"
     ],
     "canEdit": true,
     "isPremium": true

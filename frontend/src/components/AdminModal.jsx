@@ -5,7 +5,7 @@ export const isSpotMarkedPremium = (spot, usersList) => {
   if (spot.isPremium === false || spot.isPremium === 'false') return false;
   if (spot.isPremium === true || spot.isPremium === 'true') return true;
   const hostUser = usersList?.find(u => u.email && spot.hostEmail && u.email.toLowerCase() === spot.hostEmail.toLowerCase());
-  return Boolean(hostUser && hostUser.pack === 'pack_2');
+  return Boolean(hostUser && (hostUser.pack === 'pack_2' || hostUser.pack === 'pack_3'));
 };
 
 export default function AdminModal({
@@ -31,8 +31,9 @@ export default function AdminModal({
   const [showCreateUser, setShowCreateUser] = useState(false);
 
   const [editingPacks, setEditingPacks] = useState(() => packsConfig || {
-    pack_1: { name: 'Pack 01 · Visibilité Directe', price: 70, durationMonths: 12, graceDays: 7, description: 'Idéal pour lancer votre espace simplement avec une présence active.' },
-    pack_2: { name: 'Pack 02 · Flex Pro & Contrôle', price: 120, durationMonths: 12, graceDays: 7, description: 'La solution complète avec mise en avant Premium et modifications illimitées.' }
+    pack_1: { name: 'Pack 01 · Bronze', subtitle: 'Visibilité Directe', price: 70, durationMonths: 12, graceDays: 7, description: 'Idéal pour lancer votre espace simplement avec une présence active.' },
+    pack_2: { name: 'Pack 02 · Silver', subtitle: 'Flex Pro & Contrôle', price: 120, durationMonths: 12, graceDays: 7, description: 'La solution complète pour ajuster vos tarifs et maximiser votre taux d\'occupation.' },
+    pack_3: { name: 'Pack 03 · Gold', subtitle: 'Expérience VIP & Création Reel', price: 250, durationMonths: 12, graceDays: 7, description: 'L\'offre d\'excellence avec création de Reel professionnel et visibilité maximale.' }
   });
 
   useEffect(() => {
@@ -43,10 +44,13 @@ export default function AdminModal({
 
   const p1Price = editingPacks?.pack_1?.price ?? 70;
   const p2Price = editingPacks?.pack_2?.price ?? 120;
+  const p3Price = editingPacks?.pack_3?.price ?? 250;
   const p1Duration = editingPacks?.pack_1?.durationMonths ?? 12;
   const p2Duration = editingPacks?.pack_2?.durationMonths ?? 12;
-  const p1Name = editingPacks?.pack_1?.name || 'Pack 01';
-  const p2Name = editingPacks?.pack_2?.name || 'Pack Pro';
+  const p3Duration = editingPacks?.pack_3?.durationMonths ?? 12;
+  const p1Name = editingPacks?.pack_1?.name || 'Pack 01 · Bronze';
+  const p2Name = editingPacks?.pack_2?.name || 'Pack 02 · Silver';
+  const p3Name = editingPacks?.pack_3?.name || 'Pack 03 · Gold';
 
   // New user form state
   const [newName, setNewName] = useState('');
@@ -55,6 +59,7 @@ export default function AdminModal({
   const [newPhone, setNewPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('responsable');
+  const [newPack, setNewPack] = useState('pack_1');
   const [newCanEdit, setNewCanEdit] = useState(false);
 
   if (!isOpen) return null;
@@ -81,7 +86,8 @@ export default function AdminModal({
       phone: newPhone,
       password: newPassword || '123456',
       role: newRole,
-      canEdit: newCanEdit || newRole === 'admin'
+      pack: newRole === 'admin' ? 'pack_2' : newPack,
+      canEdit: newRole === 'admin' ? true : (newCanEdit || newPack === 'pack_2' || newPack === 'pack_3')
     });
 
     setShowCreateUser(false);
@@ -90,6 +96,7 @@ export default function AdminModal({
     setNewEmail('');
     setNewPhone('');
     setNewPassword('');
+    setNewPack('pack_1');
     setNewCanEdit(false);
   };
 
@@ -326,7 +333,7 @@ export default function AdminModal({
             <div className="admin-users-header">
               <div>
                 <h3>Demandes de Renouvellement de Pack ({pendingRenewals.length})</h3>
-                <p>Vérifiez la réception du règlement ({p1Price} DT ou {p2Price} DT) avant de valider l'abonnement du responsable.</p>
+                <p>Vérifiez la réception du règlement ({p1Price} DT, {p2Price} DT ou {p3Price} DT) avant de valider l'abonnement du responsable.</p>
               </div>
             </div>
 
@@ -340,14 +347,19 @@ export default function AdminModal({
               <div className="renewals-requests-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {pendingRenewals.map(u => {
                   const req = u.renewalRequest;
-                  const isPack2 = req.requestedPack === 'pack_2';
+                  const reqPack = req.requestedPack;
+                  const isPack3 = reqPack === 'pack_3';
+                  const isPack2 = reqPack === 'pack_2';
                   const sub = computeSubscription(u);
                   const dateStr = req.requestedAt ? new Date(req.requestedAt).toLocaleString('fr-FR') : 'Récemment';
+                  const reqName = isPack3 ? p3Name : (isPack2 ? p2Name : p1Name);
+                  const reqPrice = req.requestedPackPrice || (isPack3 ? p3Price : (isPack2 ? p2Price : p1Price));
+                  const reqDuration = isPack3 ? p3Duration : (isPack2 ? p2Duration : p1Duration);
 
                   return (
                     <div key={u._id || u.id} className="renewal-request-card" style={{
                       background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                      border: isPack3 ? '1.5px solid rgba(236, 72, 153, 0.5)' : (isPack2 ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1.5px solid rgba(217, 119, 6, 0.4)'),
                       borderRadius: '16px',
                       padding: '1.2rem 1.4rem',
                       display: 'flex',
@@ -376,10 +388,10 @@ export default function AdminModal({
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                             <div>
-                              Formule demandée : <strong>{isPack2 ? `⭐ ${p2Name}` : `📦 ${p1Name}`}</strong>
+                              Formule demandée : <strong>{isPack3 ? `🥇 ${p3Name}` : (isPack2 ? `🥈 ${p2Name}` : `🥉 ${p1Name}`)}</strong>
                             </div>
-                            <span style={{ fontWeight: 800, color: '#f59e0b', fontSize: '1rem' }}>
-                              Montant à vérifier : {req.requestedPackPrice ? `${req.requestedPackPrice} DT` : (isPack2 ? `${p2Price} DT` : `${p1Price} DT`)}
+                            <span style={{ fontWeight: 800, color: isPack3 ? '#ec4899' : (isPack2 ? '#fbbf24' : '#f59e0b'), fontSize: '1rem' }}>
+                              Montant à vérifier : {reqPrice} DT
                             </span>
                           </div>
                           <div style={{ marginTop: '0.4rem', color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.4 }}>
@@ -402,7 +414,7 @@ export default function AdminModal({
                           }}
                           onClick={() => onApproveRenewal(u.email, req.requestedPack)}
                         >
-                          ✅ Valider Paiement & Activer ({isPack2 ? `${p2Duration} mois` : `${p1Duration} mois`})
+                          ✅ Valider Paiement & Activer ({reqDuration} mois)
                         </button>
                         <button
                           className="btn-admin-action btn-delete"
@@ -468,6 +480,7 @@ export default function AdminModal({
                     const userId = u._id || u.id;
                     const isAdmin = u.role === 'admin';
                     const canEdit = u.canEdit || isAdmin;
+                    const isPack3 = u.pack === 'pack_3';
                     const isPack2 = u.pack === 'pack_2';
                     const sub = computeSubscription(u);
                     const hasPendingRenewal = u.renewalRequest?.status === 'pending';
@@ -492,8 +505,14 @@ export default function AdminModal({
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>👑 Admin</span>
                           ) : (
                             <div>
-                              <span className={`my-spot-badge ${isPack2 ? 'approved' : 'pending'}`} style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}>
-                                {isPack2 ? `👑 ${p2Name} (${p2Price} DT)` : `📦 ${p1Name} (${p1Price} DT)`}
+                              <span className={`my-spot-badge ${isPack3 ? 'gold' : (isPack2 ? 'approved' : 'pending')}`} style={{
+                                fontSize: '0.75rem',
+                                padding: '0.2rem 0.55rem',
+                                background: isPack3 ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(139, 92, 246, 0.25))' : undefined,
+                                borderColor: isPack3 ? '#ec4899' : undefined,
+                                color: isPack3 ? '#f472b6' : undefined
+                              }}>
+                                {isPack3 ? `🥇 ${p3Name} (${p3Price} DT)` : (isPack2 ? `🥈 ${p2Name} (${p2Price} DT)` : `🥉 ${p1Name} (${p1Price} DT)`)}
                               </span>
                               {hasPendingRenewal && (
                                 <div style={{ marginTop: '4px' }}>
@@ -507,7 +526,7 @@ export default function AdminModal({
                                     display: 'inline-block',
                                     fontWeight: 700
                                   }}>
-                                    ⏳ Demande: {u.renewalRequest.requestedPack === 'pack_2' ? `Pro ${p2Price}DT` : `01 ${p1Price}DT`}
+                                    ⏳ Demande: {u.renewalRequest.requestedPack === 'pack_3' ? `Gold ${p3Price}DT` : (u.renewalRequest.requestedPack === 'pack_2' ? `Silver ${p2Price}DT` : `Bronze ${p1Price}DT`)}
                                   </span>
                                 </div>
                               )}
@@ -683,6 +702,36 @@ export default function AdminModal({
                 </div>
 
                 {newRole === 'responsable' && (
+                  <div className="auth-field">
+                    <label>Formule / Pack initial</label>
+                    <select
+                      value={newPack}
+                      onChange={(e) => {
+                        setNewPack(e.target.value);
+                        if (e.target.value === 'pack_2' || e.target.value === 'pack_3') {
+                          setNewCanEdit(true);
+                        } else {
+                          setNewCanEdit(false);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '10px',
+                        color: '#f8fafc',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      <option value="pack_1" style={{ background: '#18181b', color: '#fff' }}>🥉 {p1Name} — {p1Price} DT ({p1Duration} mois, fiche fixe)</option>
+                      <option value="pack_2" style={{ background: '#18181b', color: '#fff' }}>🥈 {p2Name} — {p2Price} DT ({p2Duration} mois, modifiable)</option>
+                      <option value="pack_3" style={{ background: '#18181b', color: '#fff' }}>🥇 {p3Name} — {p3Price} DT ({p3Duration} mois, VIP Reel)</option>
+                    </select>
+                  </div>
+                )}
+
+                {newRole === 'responsable' && (
                   <div className="auth-checkbox-field">
                     <label>
                       <input
@@ -720,10 +769,10 @@ export default function AdminModal({
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {/* PACK 1 CONFIG */}
-                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1.5px solid rgba(255, 255, 255, 0.12)', borderRadius: '14px', padding: '1.25rem' }}>
+                <div style={{ background: 'rgba(217, 119, 6, 0.05)', border: '1.5px solid rgba(217, 119, 6, 0.3)', borderRadius: '14px', padding: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h4 style={{ margin: 0, color: 'var(--accent-1, #00f2fe)', fontSize: '1.1rem' }}>📦 Pack 01 (Visibilité Directe)</h4>
-                    <span style={{ fontSize: '0.8rem', background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-1, #00f2fe)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Standard</span>
+                    <h4 style={{ margin: 0, color: '#f59e0b', fontSize: '1.1rem' }}>🥉 Pack 01 (Bronze · Visibilité Directe)</h4>
+                    <span style={{ fontSize: '0.8rem', background: 'rgba(217, 119, 6, 0.2)', color: '#f59e0b', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Bronze</span>
                   </div>
 
                   <div className="auth-field">
@@ -790,10 +839,10 @@ export default function AdminModal({
                 </div>
 
                 {/* PACK 2 CONFIG */}
-                <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1.5px solid rgba(245, 158, 11, 0.35)', borderRadius: '14px', padding: '1.25rem' }}>
+                <div style={{ background: 'rgba(56, 189, 248, 0.05)', border: '1.5px solid rgba(56, 189, 248, 0.3)', borderRadius: '14px', padding: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h4 style={{ margin: 0, color: '#fbbf24', fontSize: '1.1rem' }}>👑 Pack 02 (Flex Pro & Premium)</h4>
-                    <span style={{ fontSize: '0.8rem', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Pro ⭐</span>
+                    <h4 style={{ margin: 0, color: '#38bdf8', fontSize: '1.1rem' }}>🥈 Pack 02 (Silver · Flex Pro & Contrôle)</h4>
+                    <span style={{ fontSize: '0.8rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Silver ⭐</span>
                   </div>
 
                   <div className="auth-field">
@@ -855,6 +904,76 @@ export default function AdminModal({
                       rows="2"
                       value={editingPacks?.pack_2?.description || ''}
                       onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_2: { ...prev.pack_2, description: e.target.value } }))}
+                    />
+                  </div>
+                </div>
+
+                {/* PACK 3 CONFIG */}
+                <div style={{ background: 'rgba(236, 72, 153, 0.05)', border: '1.5px solid rgba(236, 72, 153, 0.4)', borderRadius: '14px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ margin: 0, color: '#f472b6', fontSize: '1.1rem' }}>🥇 Pack 03 (Gold VIP & Création Reel)</h4>
+                    <span style={{ fontSize: '0.8rem', background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Pack Gold 👑</span>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Nom complet du Pack</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingPacks?.pack_3?.name || ''}
+                      onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_3: { ...prev.pack_3, name: e.target.value } }))}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                    <div className="auth-field">
+                      <label>Frais / Tarif (DT) *</label>
+                      <div className="val-input-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={editingPacks?.pack_3?.price !== undefined ? editingPacks.pack_3.price : 250}
+                          onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_3: { ...prev.pack_3, price: Math.max(0, parseFloat(e.target.value) || 0) } }))}
+                        />
+                        <span className="val-unit">DT</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-field">
+                      <label>Durée d'abonnement (Mois) *</label>
+                      <div className="val-input-wrapper">
+                        <input
+                          type="number"
+                          min="1"
+                          required
+                          value={editingPacks?.pack_3?.durationMonths !== undefined ? editingPacks.pack_3.durationMonths : 12}
+                          onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_3: { ...prev.pack_3, durationMonths: Math.max(1, parseInt(e.target.value) || 12) } }))}
+                        />
+                        <span className="val-unit">Mois</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Délai de grâce après expiration (Jours)</label>
+                    <div className="val-input-wrapper">
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingPacks?.pack_3?.graceDays !== undefined ? editingPacks.pack_3.graceDays : 7}
+                        onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_3: { ...prev.pack_3, graceDays: Math.max(0, parseInt(e.target.value) || 0) } }))}
+                      />
+                      <span className="val-unit">Jours</span>
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <label>Description du Pack</label>
+                    <textarea
+                      rows="2"
+                      value={editingPacks?.pack_3?.description || ''}
+                      onChange={(e) => setEditingPacks(prev => ({ ...prev, pack_3: { ...prev.pack_3, description: e.target.value } }))}
                     />
                   </div>
                 </div>

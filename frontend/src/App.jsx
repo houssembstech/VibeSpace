@@ -43,6 +43,9 @@ function App() {
     const deleted = getDeletedSpotIds();
     return INITIAL_SPOTS.filter(s => !deleted.includes(s.id) && !deleted.includes(s._id) && !deleted.includes(String(s.id)));
   });
+  const [isLoadingSpots, setIsLoadingSpots] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(15);
+  const progressTimerRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState('🔥 Tout');
   const [likedSpots, setLikedSpots] = useState(() => {
     try {
@@ -136,7 +139,32 @@ function App() {
     }
   }, [selectedSpot]);
 
-  const fetchAllData = () => {
+  const startLoadingAnimation = () => {
+    setIsLoadingSpots(true);
+    setLoadingProgress(15);
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 88) {
+          return 88;
+        }
+        return prev + Math.floor(Math.random() * 8 + 4);
+      });
+    }, 180);
+  };
+
+  const finishLoadingAnimation = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setLoadingProgress(100);
+    setTimeout(() => {
+      setIsLoadingSpots(false);
+    }, 380);
+  };
+
+  const fetchAllData = (isInitial = false) => {
+    if (isInitial) {
+      startLoadingAnimation();
+    }
     fetch(`${API_URL}/api/spots?all=true`)
       .then(res => res.json())
       .then(data => {
@@ -177,8 +205,12 @@ function App() {
 
           setSpotsList(dbSpots);
         }
+        finishLoadingAnimation();
       })
-      .catch(err => console.error("Spots API Fetch Error:", err));
+      .catch(err => {
+        console.error("Spots API Fetch Error:", err);
+        finishLoadingAnimation();
+      });
 
     fetch(`${API_URL}/api/auth/users`)
       .then(res => res.json())
@@ -215,7 +247,10 @@ function App() {
   };
 
   useEffect(() => {
-    fetchAllData();
+    fetchAllData(true);
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
   }, [API_URL]);
 
   const handleLoginSuccess = (user) => {
@@ -779,7 +814,13 @@ function App() {
           position: 'relative',
           boxShadow: '0 4px 15px rgba(217, 119, 6, 0.4)'
         }}>
-          <span>⏳ <strong>DEMANDE EN COURS DE VÉRIFICATION :</strong> Votre demande pour le <strong>{currentUser.renewalRequest.requestedPack === 'pack_2' ? `${packsConfig?.pack_2?.name || 'Pack Pro'} (${packsConfig?.pack_2?.price ?? 120} DT)` : `${packsConfig?.pack_1?.name || 'Pack 01'} (${packsConfig?.pack_1?.price ?? 70} DT)`}</strong> est en attente de validation de paiement par l'administrateur.</span>
+          <span>⏳ <strong>DEMANDE EN COURS DE VÉRIFICATION :</strong> Votre demande pour le <strong>{
+            currentUser.renewalRequest.requestedPack === 'pack_3' 
+              ? `${packsConfig?.pack_3?.name || 'Pack 03 · Gold'} (${packsConfig?.pack_3?.price ?? 250} DT)`
+              : (currentUser.renewalRequest.requestedPack === 'pack_2'
+                  ? `${packsConfig?.pack_2?.name || 'Pack 02 · Silver'} (${packsConfig?.pack_2?.price ?? 120} DT)`
+                  : `${packsConfig?.pack_1?.name || 'Pack 01 · Bronze'} (${packsConfig?.pack_1?.price ?? 70} DT)`)
+          }</strong> est en attente de validation de paiement par l'administrateur.</span>
           <button
             onClick={() => setShowRenewModal(true)}
             style={{
@@ -1065,7 +1106,40 @@ function App() {
       </section>
 
       <main className="spots-container">
-        {filteredSpots.length === 0 ? (
+        {isLoadingSpots ? (
+          <div className="vibespace-loader-container">
+            <div className="vibespace-loader-logo-wrap">
+              <div className="vibespace-loader-radar-1"></div>
+              <div className="vibespace-loader-radar-2"></div>
+              <div className="vibespace-loader-radar-3"></div>
+              <div className="vibespace-loader-logo-inner">
+                <img src="/vibespace-pin-logo.png" alt="VibeSpace" className="vibespace-loader-logo-img" />
+              </div>
+            </div>
+
+            <h3 className="vibespace-loader-title">
+              Vibe<span className="text-gradient">Space</span>
+            </h3>
+
+            <p className="vibespace-loader-status">
+              <span className="vibespace-ping-dot"></span>
+              Recherche et synchronisation des espaces...
+            </p>
+
+            <div className="vibespace-progress-wrap">
+              <div className="vibespace-progress-labels">
+                <span>Chargement des spots...</span>
+                <span className="vibespace-progress-pct">{loadingProgress}%</span>
+              </div>
+              <div className="vibespace-progress-track">
+                <div 
+                  className="vibespace-progress-fill" 
+                  style={{ width: `${loadingProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        ) : filteredSpots.length === 0 ? (
           <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '60px 20px', color: '#94a3b8' }}>
             <p style={{ fontSize: '1.25rem', marginBottom: '8px', color: '#f1f5f9', fontWeight: 600 }}>Aucun espace disponible 🏖️</p>
             <p style={{ fontSize: '0.95rem' }}>Tous les espaces affichés ici sont directement synchronisés avec la base de données.</p>

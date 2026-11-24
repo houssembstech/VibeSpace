@@ -13,10 +13,13 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
 
   const pack1Price = packsConfig?.pack_1?.price !== undefined ? packsConfig.pack_1.price : 70;
   const pack2Price = packsConfig?.pack_2?.price !== undefined ? packsConfig.pack_2.price : 120;
-  const pack1Duration = packsConfig?.pack_1?.durationMonths ? `${packsConfig.pack_1.durationMonths} mois` : 'an';
-  const pack2Duration = packsConfig?.pack_2?.durationMonths ? `${packsConfig.pack_2.durationMonths} mois` : 'an';
-  const pack1Name = packsConfig?.pack_1?.name || 'Pack 01 · Visibilité Directe';
-  const pack2Name = packsConfig?.pack_2?.name || 'Pack 02 · Flex Pro & Contrôle';
+  const pack3Price = packsConfig?.pack_3?.price !== undefined ? packsConfig.pack_3.price : 250;
+  const pack1Duration = packsConfig?.pack_1?.durationMonths ? `${packsConfig.pack_1.durationMonths} mois` : '12 mois';
+  const pack2Duration = packsConfig?.pack_2?.durationMonths ? `${packsConfig.pack_2.durationMonths} mois` : '12 mois';
+  const pack3Duration = packsConfig?.pack_3?.durationMonths ? `${packsConfig.pack_3.durationMonths} mois` : '12 mois';
+  const pack1Name = packsConfig?.pack_1?.name || 'Pack 01 · Bronze';
+  const pack2Name = packsConfig?.pack_2?.name || 'Pack 02 · Silver';
+  const pack3Name = packsConfig?.pack_3?.name || 'Pack 03 · Gold';
 
   if (!isOpen) return null;
 
@@ -43,12 +46,20 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
         if (!res.ok) throw new Error(data.message || "Erreur lors de l'inscription");
         onLoginSuccess(data);
         onClose();
-        const packLabel = selectedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`;
+        const getPackDesc = (pId) => {
+          if (pId === 'pack_3') return `${pack3Name} (${pack3Price} DT)`;
+          if (pId === 'pack_2') return `${pack2Name} (${pack2Price} DT)`;
+          return `${pack1Name} (${pack1Price} DT)`;
+        };
+        const packLabel = getPackDesc(selectedPack);
         alert(`Bienvenue sur VibeSpace ! Ton compte Responsable pour "${spaceName}" a été créé avec succès avec le ${packLabel} 🏢✨.`);
       } catch (err) {
         // Fallback offline / local
         const isAdmin = cleanEmail === 'houssembs.tech@gmail.com';
-        const isPro = selectedPack === 'pack_2';
+        const isGold = selectedPack === 'pack_3';
+        const isSilver = selectedPack === 'pack_2';
+        const isPro = isGold || isSilver;
+        const chosenPrice = isGold ? pack3Price : (isSilver ? pack2Price : pack1Price);
         const fallbackUser = {
           _id: 'u_' + Date.now(),
           name,
@@ -57,12 +68,12 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
           phone,
           role: isAdmin ? 'admin' : 'responsable',
           pack: selectedPack,
-          packPrice: isPro ? pack2Price : pack1Price,
+          packPrice: chosenPrice,
           canEdit: isAdmin ? true : isPro
         };
         onLoginSuccess(fallbackUser);
         onClose();
-        const packLabel = selectedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`;
+        const packLabel = selectedPack === 'pack_3' ? `${pack3Name} (${pack3Price} DT)` : (selectedPack === 'pack_2' ? `${pack2Name} (${pack2Price} DT)` : `${pack1Name} (${pack1Price} DT)`);
         alert(`Bienvenue sur VibeSpace ! Ton compte Responsable pour "${spaceName}" a été créé avec succès (${packLabel}) 🏢✨.`);
       } finally {
         setLoading(false);
@@ -162,13 +173,15 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
               {/* SÉLECTION DU PACK */}
               <div className="packs-selection-title">1. Choisissez votre Pack Annuel *</div>
               <div className="packs-grid">
-                {/* PACK 01 */}
+                {/* PACK 01 - BRONZE */}
                 <div 
-                  className={`pack-card ${selectedPack === 'pack_1' ? 'selected' : ''}`}
+                  className={`pack-card pack-bronze ${selectedPack === 'pack_1' ? 'selected' : ''}`}
                   onClick={() => setSelectedPack('pack_1')}
                 >
+                  <div className="pack-tier-badge bronze">🥉 BRONZE</div>
                   <div className="pack-card-header">
                     <h4 className="pack-name">{pack1Name}</h4>
+                    <span className="pack-subtitle-tag">Visibilité Directe</span>
                   </div>
                   <div className="pack-price-tag">
                     {pack1Price} <span className="currency">DT</span> <span className="pack-period">/ {pack1Duration} (renouvelable)</span>
@@ -186,18 +199,20 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
 
                   <div className="pack-radio-indicator">
                     <div className="pack-radio-circle"></div>
-                    <span>{selectedPack === 'pack_1' ? `✓ Pack Sélectionné (${pack1Price} DT)` : 'Choisir le Pack 01'}</span>
+                    <span>{selectedPack === 'pack_1' ? `✓ Bronze Sélectionné (${pack1Price} DT)` : 'Choisir Bronze'}</span>
                   </div>
                 </div>
 
-                {/* PACK 02 */}
+                {/* PACK 02 - SILVER */}
                 <div 
-                  className={`pack-card pro ${selectedPack === 'pack_2' ? 'selected' : ''}`}
+                  className={`pack-card pro pack-silver ${selectedPack === 'pack_2' ? 'selected' : ''}`}
                   onClick={() => setSelectedPack('pack_2')}
                 >
-                  <div className="pack-badge-top">⭐ RECOMMANDÉ · LE PLUS POPULAIRE</div>
+                  <div className="pack-badge-top">⭐ RECOMMANDÉ · FLEXIBILITÉ MAX</div>
+                  <div className="pack-tier-badge silver">🥈 SILVER</div>
                   <div className="pack-card-header">
                     <h4 className="pack-name">{pack2Name}</h4>
+                    <span className="pack-subtitle-tag">Flex Pro & Contrôle</span>
                   </div>
                   <div className="pack-price-tag pro">
                     {pack2Price} <span className="currency">DT</span> <span className="pack-period">/ {pack2Duration} (renouvelable)</span>
@@ -216,7 +231,40 @@ export default function AuthModal({ isOpen, onClose, currentUser, onLoginSuccess
 
                   <div className="pack-radio-indicator">
                     <div className="pack-radio-circle"></div>
-                    <span>{selectedPack === 'pack_2' ? `✓ Pack Pro Sélectionné (${pack2Price} DT)` : 'Choisir le Pack Pro'}</span>
+                    <span>{selectedPack === 'pack_2' ? `✓ Silver Sélectionné (${pack2Price} DT)` : 'Choisir Silver'}</span>
+                  </div>
+                </div>
+
+                {/* PACK 03 - GOLD */}
+                <div 
+                  className={`pack-card vip pack-gold ${selectedPack === 'pack_3' ? 'selected' : ''}`}
+                  onClick={() => setSelectedPack('pack_3')}
+                >
+                  <div className="pack-badge-top gold">👑 VIP · CRÉATION DE REEL PRO</div>
+                  <div className="pack-tier-badge gold">🥇 GOLD VIP</div>
+                  <div className="pack-card-header">
+                    <h4 className="pack-name">{pack3Name}</h4>
+                    <span className="pack-subtitle-tag">Expérience VIP & Tournage</span>
+                  </div>
+                  <div className="pack-price-tag gold">
+                    {pack3Price} <span className="currency">DT</span> <span className="pack-period">/ {pack3Duration} (renouvelable)</span>
+                  </div>
+                  <p className="pack-subdesc">L'offre d'excellence avec création de Reel professionnel et visibilité maximale.</p>
+                  
+                  <ul className="pack-features-list">
+                    <li className="highlight-feature gold">🚀 <strong>Tous les avantages du Pack 01 et 02 inclus</strong></li>
+                    <li className="highlight-feature gold">👑 <strong>Mise en avant Premium</strong> : carrousel horizontal exclusif en tête d'accueil</li>
+                    <li className="highlight-feature gold">✏️ <strong>Modifications & Mises à jour illimitées</strong> toute la période</li>
+                    <li>📸 <strong>Changement de photos, tarifs</strong> & description</li>
+                    <li>⚙️ <strong>Ajustement des options</strong> et capacités</li>
+                    <li>💬 <strong>Réservations directes WhatsApp</strong> & Email</li>
+                    <li>📅 <strong>Abonnement valable {pack3Duration}</strong> (renouvelable)</li>
+                    <li className="highlight-feature special-gold">🎬 <strong>Séance pour création de Reel avec matériel professionnel</strong> organisée en collaboration</li>
+                  </ul>
+
+                  <div className="pack-radio-indicator">
+                    <div className="pack-radio-circle"></div>
+                    <span>{selectedPack === 'pack_3' ? `✓ Gold VIP Sélectionné (${pack3Price} DT)` : 'Choisir Gold VIP'}</span>
                   </div>
                 </div>
               </div>

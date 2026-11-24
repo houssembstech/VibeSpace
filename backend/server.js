@@ -67,8 +67,10 @@ const PACKS_CONFIG_FILE = path.join(__dirname, 'config', 'packsConfig.json');
 const DEFAULT_PACKS_CONFIG = {
   pack_1: {
     id: 'pack_1',
-    name: 'Pack 01 · Visibilité Directe',
-    shortName: 'Pack 01 Visibilité',
+    tier: 'bronze',
+    name: 'Pack 01 · Bronze',
+    subtitle: 'Visibilité Directe',
+    shortName: 'Bronze',
     price: 70,
     durationMonths: 12,
     graceDays: 7,
@@ -78,26 +80,53 @@ const DEFAULT_PACKS_CONFIG = {
       'Nom d\'espace certifié & fixe (immuable)',
       'Réservations directes sans intermédiaire (WhatsApp & Email)',
       '0% de commission sur tous vos revenus',
-      'Abonnement renouvelable'
+      'Abonnement valable 12 mois (renouvelable)',
+      'Fiche fixe : informations non modifiables après publication'
     ],
     canEdit: false,
     isPremium: false
   },
   pack_2: {
     id: 'pack_2',
-    name: 'Pack 02 · Flex Pro & Contrôle',
-    shortName: 'Pack Flex Pro',
+    tier: 'silver',
+    name: 'Pack 02 · Silver',
+    subtitle: 'Flex Pro & Contrôle',
+    shortName: 'Silver',
     price: 120,
     durationMonths: 12,
     graceDays: 7,
-    description: 'La solution complète avec mise en avant Premium et modifications illimitées.',
+    description: 'La solution complète pour ajuster vos tarifs et maximiser votre taux d\'occupation.',
     features: [
       'Tous les avantages du Pack 01 inclus',
       'Mise en avant Premium : carrousel horizontal exclusif en tête d\'accueil',
       'Modifications & Mises à jour illimitées toute l\'année',
       'Changement de photos, tarifs (heure, ½ j, jour) & description',
       'Ajustement des options, équipements et capacités',
-      'Réservations directes WhatsApp & Email'
+      'Réservations directes WhatsApp & Email',
+      'Abonnement valable 12 mois (renouvelable)'
+    ],
+    canEdit: true,
+    isPremium: true
+  },
+  pack_3: {
+    id: 'pack_3',
+    tier: 'gold',
+    name: 'Pack 03 · Gold',
+    subtitle: 'Expérience VIP & Création Reel',
+    shortName: 'Gold VIP',
+    price: 250,
+    durationMonths: 12,
+    graceDays: 7,
+    description: "L'offre d'excellence avec création de Reel professionnel et visibilité maximale.",
+    features: [
+      'Tous les avantages du Pack 01 et 02 inclus',
+      'Mise en avant Premium : carrousel horizontal exclusif en tête d\'accueil',
+      'Modifications & Mises à jour illimitées toute la période d\'abonnement',
+      'Changement de photos, tarifs (heure, ½ j, jour) & description',
+      'Ajustement des options, équipements et capacités',
+      'Réservations directes WhatsApp & Email',
+      'Abonnement valable 12 mois (renouvelable)',
+      'Séance pour création de Reel avec matériel professionnel organisée en collaboration'
     ],
     canEdit: true,
     isPremium: true
@@ -178,7 +207,7 @@ const formatUserResponse = (user) => {
 
   const packs = getPacksConfig();
   const configuredPack = packs[packKey] || DEFAULT_PACKS_CONFIG[packKey];
-  const dynamicPrice = configuredPack ? configuredPack.price : (raw.packPrice || (packKey === 'pack_2' ? 120 : 70));
+  const dynamicPrice = configuredPack ? configuredPack.price : (raw.packPrice || (packKey === 'pack_3' ? 250 : (packKey === 'pack_2' ? 120 : 70)));
 
   return {
     id: raw._id,
@@ -272,7 +301,7 @@ app.post('/api/spots', upload.array('images', 5), async (req, res) => {
     if (!isPrem && hostEmail) {
       try {
         const hostUser = await User.findOne({ email: hostEmail.toLowerCase() });
-        if (hostUser && (hostUser.pack === 'pack_2' || hostUser.packPrice === 120)) {
+        if (hostUser && (hostUser.pack === 'pack_2' || hostUser.pack === 'pack_3' || hostUser.packPrice === 120 || hostUser.packPrice === 250)) {
           isPrem = true;
         }
       } catch (e) {
@@ -460,10 +489,10 @@ app.post('/api/auth/register', async (req, res) => {
 
     const isAdmin = cleanEmail === 'houssembs.tech@gmail.com';
     const packs = getPacksConfig();
-    const chosenPack = pack === 'pack_2' ? 'pack_2' : 'pack_1';
+    const chosenPack = packs[pack] ? pack : (pack === 'pack_3' ? 'pack_3' : (pack === 'pack_2' ? 'pack_2' : 'pack_1'));
     const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
-    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
-    const canEditAllowed = isAdmin ? true : (packConfig ? Boolean(packConfig.canEdit) : (chosenPack === 'pack_2'));
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_3' ? 250 : (chosenPack === 'pack_2' ? 120 : 70));
+    const canEditAllowed = isAdmin ? true : (packConfig ? Boolean(packConfig.canEdit) : (chosenPack === 'pack_2' || chosenPack === 'pack_3'));
 
     const dates = calculatePackDates(new Date(), chosenPack);
 
@@ -578,7 +607,7 @@ app.post('/api/auth/users', async (req, res) => {
     const packs = getPacksConfig();
     const chosenPack = pack || (canEdit ? 'pack_2' : 'pack_1');
     const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
-    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_3' ? 250 : (chosenPack === 'pack_2' ? 120 : 70));
     const dates = calculatePackDates(packPurchasedAt || new Date(), chosenPack);
 
     const newUser = new User({
@@ -588,7 +617,7 @@ app.post('/api/auth/users', async (req, res) => {
       phone,
       password: password || '123456',
       role: role || 'responsable',
-      canEdit: canEdit !== undefined ? canEdit : (role === 'admin' || chosenPack === 'pack_2'),
+      canEdit: canEdit !== undefined ? canEdit : (role === 'admin' || chosenPack === 'pack_2' || chosenPack === 'pack_3'),
       pack: chosenPack,
       packPrice,
       packPurchasedAt: dates.packPurchasedAt,
@@ -633,10 +662,10 @@ app.post('/api/auth/request-renewal', async (req, res) => {
     if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
 
     const packToRequest = requestedPack || pack;
-    const chosenPack = packToRequest === 'pack_2' ? 'pack_2' : 'pack_1';
     const packs = getPacksConfig();
+    const chosenPack = packs[packToRequest] ? packToRequest : (packToRequest === 'pack_3' ? 'pack_3' : (packToRequest === 'pack_2' ? 'pack_2' : 'pack_1'));
     const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
-    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_3' ? 250 : (chosenPack === 'pack_2' ? 120 : 70));
 
     user.renewalRequest = {
       status: 'pending',
@@ -673,8 +702,8 @@ app.post('/api/auth/approve-renewal', async (req, res) => {
     const packs = getPacksConfig();
     const targetPack = requestedPack || pack || user.renewalRequest?.requestedPack || user.pack || 'pack_1';
     const packConfig = packs[targetPack] || DEFAULT_PACKS_CONFIG[targetPack];
-    const packPrice = packConfig ? packConfig.price : (targetPack === 'pack_2' ? 120 : 70);
-    const canEdit = user.role === 'admin' ? true : (packConfig ? Boolean(packConfig.canEdit) : (targetPack === 'pack_2'));
+    const packPrice = packConfig ? packConfig.price : (targetPack === 'pack_3' ? 250 : (targetPack === 'pack_2' ? 120 : 70));
+    const canEdit = user.role === 'admin' ? true : (packConfig ? Boolean(packConfig.canEdit) : (targetPack === 'pack_2' || targetPack === 'pack_3'));
 
     // Official renewal: dynamic duration & grace
     const dates = calculatePackDates(new Date(), targetPack);
@@ -693,7 +722,7 @@ app.post('/api/auth/approve-renewal', async (req, res) => {
     };
 
     await user.save();
-    const packName = packConfig?.name || (targetPack === 'pack_2' ? 'Pack Pro' : 'Pack 01');
+    const packName = packConfig?.name || (targetPack === 'pack_3' ? 'Pack 03 Gold' : (targetPack === 'pack_2' ? 'Pack 02 Silver' : 'Pack 01 Bronze'));
     const duration = packConfig?.durationMonths || 12;
     res.json({
       message: `Paiement vérifié ! Abonnement ${packName} (${packPrice} DT) validé et actif pour ${duration} mois 🚀`,
@@ -747,8 +776,8 @@ app.post('/api/auth/renew-pack', async (req, res) => {
     const packs = getPacksConfig();
     const chosenPack = pack || user.renewalRequest?.requestedPack || user.pack || 'pack_1';
     const packConfig = packs[chosenPack] || DEFAULT_PACKS_CONFIG[chosenPack];
-    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_2' ? 120 : 70);
-    const canEdit = user.role === 'admin' ? true : (packConfig ? Boolean(packConfig.canEdit) : (chosenPack === 'pack_2'));
+    const packPrice = packConfig ? packConfig.price : (chosenPack === 'pack_3' ? 250 : (chosenPack === 'pack_2' ? 120 : 70));
+    const canEdit = user.role === 'admin' ? true : (packConfig ? Boolean(packConfig.canEdit) : (chosenPack === 'pack_2' || chosenPack === 'pack_3'));
 
     // Renewal: dynamic duration & grace
     const dates = calculatePackDates(new Date(), chosenPack);
